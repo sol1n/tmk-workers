@@ -126,6 +126,9 @@ class EventsCreator extends BaseWorker
                         ]);
 
                         $this->log('Created event for ' . $report->fields['title'] ?? '' . ' report with id: ' . $event->id . ' in ' . $taskName);
+
+                        $task->fields['reports'] = null;
+                        $task->save();
                     }
                 } else {
                     $this->log('Can`t create elements in non-empty section: ' . $taskName . ' (' . $task->id . ')', 'error');

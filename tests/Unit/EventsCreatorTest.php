@@ -130,4 +130,55 @@ class EventsCreatorTest extends TestCase
         }
         $eventSection->delete();
     }
+
+    /**
+     * @group current
+     */
+    public function test_events_section_has_empty_reports_field_after_processing()
+    {
+        $reports = [];
+        $userProfiles = $this->getProfiles();
+
+        for ($i = 0; $i < 1; $i++) {
+            $report = Element::create(EventsCreator::REPORTS_COLLECTION, [
+                'title' => "title$i",
+                'description' => "description$i",
+                'userProfileIds' => $userProfiles,
+            ], $this->user->backend);
+
+            Element::updateLanguages(EventsCreator::REPORTS_COLLECTION, $report->id, [
+                'en' => [
+                    'title' => "enTitle$i",
+                    'description' => "enDescription$i"
+                ],
+            ], $this->user->backend);
+
+            $reports[] = $report->getLanguages('en');
+        }
+
+        $reportsIds = collect($reports)
+            ->map(function ($item) {
+                return $item->id;
+            })
+            ->toArray();
+
+        $eventSection = Element::create(EventsCreator::EVENTS_COLLECTION, [
+            'title' => 'deleteMePls',
+            'reports' => $reportsIds,
+            'beginAt' => (new Carbon)->setTimezone('Europe/Moscow')->toAtomString(),
+            'endAt' => (new Carbon)->addHour()->setTimezone('Europe/Moscow')->toAtomString()
+        ], $this->user->backend);
+
+        $eventsCreator = new EventsCreator($this->user);
+        $eventsCreator->handle();
+
+        $eventSection = Element::find(EventsCreator::EVENTS_COLLECTION, $eventSection->id, $this->user->backend);
+
+        $this->assertNull($eventSection->fields['reports']);
+
+        foreach ($reports as $report) {
+            $report->delete();
+        }
+        $eventSection->delete();
+    }
 }
