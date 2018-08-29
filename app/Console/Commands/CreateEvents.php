@@ -58,7 +58,7 @@ class CreateEvents extends Command
 
         $user = User::LoginByToken((new Backend), $token);
         $this->worker = new EventsCreator($user, $this->logger);
-        $createdElements = $this->worker->check();
+        $createdElements = $this->worker->handle();
 
         $this->logger->info('All done');
     }
