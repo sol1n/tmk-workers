@@ -28,7 +28,7 @@ class SectionsSubtitleFixer extends BaseWorker
                 ]
             ],
             'take' => -1
-        ])->map(function($item) {
+        ])->map(function ($item) {
             return $item->id;
         });
 
@@ -46,28 +46,43 @@ class SectionsSubtitleFixer extends BaseWorker
     {
         return Element::list(self::PROFILES_SCHEMA, $this->user->backend, [
             'take' => -1
-        ])->mapWithKeys(function($item) {
+        ], ['en'])->mapWithKeys(function ($item) {
             return [$item->id => $item];
         });
     }
 
-    private function getStringSpeakers($lecture, $profiles): string
+    private function getStringSpeakers($lecture, $profiles): array
     {
-        $result = [];
+        $result = [
+            'ru' => [],
+            'en' => []
+        ];
         if (isset($lecture->fields['userProfileIds']) && is_array($lecture->fields['userProfileIds'])) {
             foreach ($lecture->fields['userProfileIds'] as $profileId) {
                 $profile = $profiles[$profileId] ?? null;
+
                 if (
-                    isset($profile->fields['lastName']) 
-                    && $profile->fields['lastName'] 
-                    && isset($profile->fields['firstName']) 
+                    isset($profile->fields['lastName'])
+                    && $profile->fields['lastName']
+                    && isset($profile->fields['firstName'])
                     && $profile->fields['firstName']
                 ) {
-                    $result[] = $profile->fields['lastName'] . ' ' . $profile->fields['firstName'];
+                    $result['ru'][] = $profile->fields['lastName'] . ' ' . $profile->fields['firstName'];
+                }
+
+                if (
+                    isset($profile->languages['en']['lastName'])
+                    && $profile->languages['en']['lastName']
+                    && isset($profile->languages['en']['firstName'])
+                    && $profile->languages['en']['firstName']
+                ) {
+                    $result['en'][] = $profile->languages['en']['lastName'] . ' ' . $profile->languages['en']['firstName'];
                 }
             }
         }
-        return implode(', ', $result);
+        $result['ru'] = implode(', ', $result['ru']);
+        $result['en'] = implode(', ', $result['en']);
+        return $result;
     }
 
     public function handle()
@@ -76,14 +91,16 @@ class SectionsSubtitleFixer extends BaseWorker
         $profiles = $this->getProfiles();
 
         foreach ($lectures as $lecture) {
-            if (isset($lecture->fields['subtitle']) && $lecture->fields['subtitle']) {
-                continue;
-            }
-
             $speakers = $this->getStringSpeakers($lecture, $profiles);
 
             Element::update(self::LECTURES_SCHEMA, $lecture->id, [
-                'subtitle' => $speakers
+                'subtitle' => $speakers['ru']
+            ], $this->user->backend);
+
+            Element::updateLanguages(self::LECTURES_SCHEMA, $lecture->id, [
+                'en' => [
+                    'subtitle' => $speakers['en']
+                ]
             ], $this->user->backend);
         }
     }
