@@ -131,9 +131,6 @@ class EventsCreatorTest extends TestCase
         $eventSection->delete();
     }
 
-    /**
-     * @group current
-     */
     public function test_events_section_has_empty_reports_field_after_processing()
     {
         $reports = [];
@@ -180,5 +177,16 @@ class EventsCreatorTest extends TestCase
             $report->delete();
         }
         $eventSection->delete();
+    }
+
+    public function test_events_creator_removes_header_tag_correctly()
+    {
+        $eventsCreator = new EventsCreator($this->user);
+
+        $testString = '<h3>Header to remove</h3><h3>Header to keep</h3><p>Some text</p><h3>Another header to keep</h3><p>Text</p><p>Text</p>';
+
+        $processedString = $eventsCreator->removeHeaderTag($testString);
+
+        $this->assertEquals($processedString, '<h3>Header to keep</h3><p>Some text</p><h3>Another header to keep</h3><p>Text</p><p>Text</p>');
     }
 }

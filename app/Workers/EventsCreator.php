@@ -84,6 +84,12 @@ class EventsCreator extends BaseWorker
         return $event;
     }
 
+    public function removeHeaderTag(string $description): string
+    {
+        $pattern = '@<h3>.*?</h3>(.*)@';
+        return preg_replace($pattern, '$1', $description);
+    }
+
     /**
      * Main handler
      * @return void
@@ -108,7 +114,7 @@ class EventsCreator extends BaseWorker
                         $event = $this->createEvent([
                             'beginAt' => $task->fields['beginAt'] ?? null,
                             'endAt' => $task->fields['endAt'] ?? null,
-                            'description' => $report->fields['description'] ?? '',
+                            'description' => $this->removeHeaderTag($report->fields['description'] ?? ''),
                             'title' => $report->fields['title'],
                             'parentId' => $task->id,
                             'externalId' => $report->id,
@@ -121,7 +127,7 @@ class EventsCreator extends BaseWorker
                         $this->saveEventEnFields($event, [
                             'en' => [
                                 'title' => $report->languages['en']['title'] ?? '',
-                                'description' => $report->languages['en']['description'] ?? ''
+                                'description' => $this->removeHeaderTag($report->languages['en']['description'] ?? '')
                             ]
                         ]);
 
