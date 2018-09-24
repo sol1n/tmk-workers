@@ -15,6 +15,8 @@ use Barryvdh\DomPDF\Facade as DomPDF;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\Qr as QrMail;
 
+use Carbon\Carbon;
+
 class GenerateQR extends Command
 {
     private $logger;
@@ -81,19 +83,27 @@ class GenerateQR extends Command
                 ]
             ]
         ])->map(function ($item) {
-            return $item->id;
+            return [
+                'id' => $item->id,
+                'title' => $item->fields['title'] ?? '',
+                'beginAt' => isset($item->fields['beginAt']) 
+                    ? (new Carbon($item->fields['beginAt']))->setTimezone('UTC')->format('d.m.Y H:i')
+                    : ''
+            ];
         });
 
         $results = [];
 
         foreach ($elements as $element) {
-            QRCode::text($this->qrText($this->collectionName, $element))->setOutfile(storage_path('qr/' . $element . '.png'))->png();
+            QRCode::text($this->qrText($this->collectionName, $element['id']))->setOutfile(storage_path('qr/' . $element['id'] . '.png'))->png();
             $results [] = [
-                'svg' =>  base64_encode(file_get_contents(storage_path('qr/' . $element . '.png'))),
-                'id' => $element
+                'svg' =>  base64_encode(file_get_contents(storage_path('qr/' . $element['id'] . '.png'))),
+                'id' => $element['id'],
+                'title' => $element['title'],
+                'beginAt' => $element['beginAt']
             ];
 
-            unlink(storage_path('qr/' . $element . '.png'));
+            unlink(storage_path('qr/' . $element['id'] . '.png'));
         }
 
         $pdf = DomPDF::loadView('qr.list', [

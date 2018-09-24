@@ -4,10 +4,12 @@
 .page-break {
     page-break-after: always;
 }
+body { font-family: DejaVu Sans; }
 </style>
 
 {% for element in elements %}
 	<img src="data:image/png;base64,{{ element.svg|raw }}" width="100%" />
-	<h4>{{ collection }}, {{ element.id }}</h4>
+	<h4>{{ element.title }}</h4>
+	<p>{{ element.beginAt }}</p>
 	<div class="page-break"></div>
 {% endfor %}
