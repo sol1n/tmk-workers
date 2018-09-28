@@ -2,7 +2,7 @@
 
 return [
     'page title' => 'Профиль проекта',
-    'status' => 'Статус',
+    'status' => 'Результат',
     'section' => 'Секция',
     'company' => 'Компания',
     'expected economic impact' => 'Ожидаемый экономический эффект',
