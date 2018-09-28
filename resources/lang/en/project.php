@@ -17,6 +17,6 @@ return [
     'place-2' => '2 place',
     'place-3' => '3 place',
     'place' => 'Place',
-    'authors' => 'Authors',
+    'authors' => 'Author',
     'curator' => 'Curator'
 ];
