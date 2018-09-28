@@ -22,6 +22,13 @@
 				</div>
 			{% endif %}
 
+			{% if not project.fields.projectStatus is null %}
+				<div class="project__characteristic">
+					<div class="project__characteristic-title">{{ trans('project.place') }}</div>
+					<div class="project__characteristic-value">{{ trans('project.place-' ~ project.fields.projectStatus) }}</div>
+				</div>
+			{% endif %}
+
 			<div class="project__characteristic">
 				<div class="project__characteristic-title">{{ trans('project.section') }}</div>
 				<div class="project__characteristic-value">{{ project.section }}</div>
@@ -37,7 +44,14 @@
 			{% if not project.fields.effectCounted is null %}
 				<div class="project__characteristic">
 					<div class="project__characteristic-title">{{ trans('project.expected economic impact') }}</div>
-					<div class="project__characteristic-value">{{ project.fields.effectCounted }} ₽.</div>
+					<div class="project__characteristic-value">{{ project.fields.effectCounted|number_format(0, '', ' ') }}₽.</div>
+				</div>
+			{% endif %}
+
+			{% if not project.fields.effectReal is null %}
+				<div class="project__characteristic">
+					<div class="project__characteristic-title">{{ trans('project.real economic impact') }}</div>
+					<div class="project__characteristic-value">{{ project.fields.effectReal|number_format(0, '', ' ') }}₽.</div>
 				</div>
 			{% endif %}
 
@@ -53,6 +67,30 @@
 					<div class="project__characteristic-title">{{ trans('project.note') }}</div>
 					<div class="project__characteristic-value">{{ project.fields.comment }}</div>
 				</div>
+			{% endif %}
+
+			{% if project.authors|length %}
+				<div class="project__characteristic">
+			        <div class="project__characteristic-title">{{ trans('project.authors') }}</div>
+			        <div class="project__characteristic-value">
+			        	{% for author in project.authors %}
+			            	{{ author.name }}{% if author.company %}, {{ author.company }}{% endif %}
+			            	{% if not loop.last %}<br/>{% endif %}
+			            {% endfor %}
+			        </div>
+			    </div>
+			{% endif %}
+
+			{% if project.curators|length %}
+				<div class="project__characteristic">
+			        <div class="project__characteristic-title">{{ trans('project.curator') }}</div>
+			        <div class="project__characteristic-value">
+			        	{% for curator in project.curators %}
+			            	{{ curator.name }}{% if curator.company %}, {{ curator.company }}{% endif %}
+			            	{% if not loop.last %}<br/>{% endif %}
+			            {% endfor %}
+			        </div>
+			    </div>
 			{% endif %}
 		</div>
 

@@ -123,8 +123,34 @@ class ProjectsWorker extends BaseWorker
         $project->section = $section->fields['title'] ?? '';
         $project->company = '';
 
+
         if (isset($project->fields['userProfileIds']) && is_array($project->fields['userProfileIds'])) {
             $companyNames = [];
+            $authors = $curators = [];
+
+            $projectCurators = $project->fields['curatorProfileIds'];
+            foreach ($projectCurators as $curatorId) {
+                $curatorProfile = $this->structure['profiles'][$curatorId];
+                $curators[] = [
+                    'name' => $curatorProfile->fields['lastName'] . ' ' . $curatorProfile->fields['firstName'],
+                    'company' => $curatorProfile->fields['company']
+                ];
+            }
+
+            foreach ($project->fields['userProfileIds'] as $authorId) {
+                if (!in_array($authorId, $projectCurators)) {
+                    $authorProfile = $this->structure['profiles'][$authorId];
+
+                    $authors[] = [
+                        'name' => $authorProfile->fields['lastName'] . ' ' . $authorProfile->fields['firstName'],
+                        'company' => $authorProfile->fields['company']
+                    ];
+                }
+            }
+
+            $project->curators = $curators;
+            $project->authors = $authors;
+
             foreach ($project->fields['userProfileIds'] as $ownerProfileId) {
                 $ownerProfile = $this->structure['profiles'][$ownerProfileId];
                 if (isset($ownerProfile->fields['company']) && $ownerProfile->fields['company']) {
@@ -137,10 +163,10 @@ class ProjectsWorker extends BaseWorker
         }
 
         $html = view('projects/description', ['project' => $project])->render();
-        
+
         Element::update(self::PROJECTS_COLLECTION, $project->id, [
             'description' => $html,
-            'subtitle' => trans('project.status-' . $project->fields['projectResult'])
+            'subtitle' => is_null($project->fields['projectResult']) ? '' : trans('project.status-' . $project->fields['projectResult'])
         ], $this->user->backend);
     }
 
