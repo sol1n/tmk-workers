@@ -86,7 +86,7 @@ class GenerateQR extends Command
             return [
                 'id' => $item->id,
                 'title' => $item->fields['title'] ?? '',
-                'beginAt' => isset($item->fields['beginAt']) 
+                'beginAt' => isset($item->fields['beginAt'])
                     ? (new Carbon($item->fields['beginAt']))->setTimezone('UTC')->format('d.m.Y H:i')
                     : ''
             ];

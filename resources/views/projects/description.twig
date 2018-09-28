@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ru">
+	<head>
+		<meta charset="utf-8">
+		<title>{{ trans('project.page title') }}</title>
+		<meta name="description" content="">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+		<meta name="theme-color" content="#000">
+	</head>
+
+	<body>
+		<div class="project">
+			<div class="project__title">{{ project.fields.title }}</div>
+
+			{% set statusClasses = ['project__characteristic-value_not-implemented', 'project__characteristic-value_begin', 'project__characteristic-value_done'] %}
+
+			{% if not project.fields.projectStatus is null %}
+				<div class="project__characteristic">
+					<div class="project__characteristic-title">{{ trans('project.status') }}</div>
+					<div class="{{ statusClasses[project.fields.projectStatus] }}">{{ trans('project.status-' ~ project.fields.projectStatus) }}</div>
+				</div>
+			{% endif %}
+
+			<div class="project__characteristic">
+				<div class="project__characteristic-title">{{ trans('project.section') }}</div>
+				<div class="project__characteristic-value">{{ project.section }}</div>
+			</div>
+
+			{% if project.company %}
+				<div class="project__characteristic">
+					<div class="project__characteristic-title">{{ trans('project.company') }}</div>
+					<div class="project__characteristic-value">{{ project.company }}</div>
+				</div>
+			{% endif %}
+
+			{% if not project.fields.effectCounted is null %}
+				<div class="project__characteristic">
+					<div class="project__characteristic-title">{{ trans('project.expected economic impact') }}</div>
+					<div class="project__characteristic-value">{{ project.fields.effectCounted }} ₽.</div>
+				</div>
+			{% endif %}
+
+			{% if project.fields.projectYear %}
+				<div class="project__characteristic">
+					<div class="project__characteristic-title">{{ trans('project.year') }}</div>
+					<div class="project__characteristic-value">{{ project.fields.projectYear }}</div>
+				</div>
+			{% endif %}
+
+			{% if project.fields.comment %}
+				<div class="project__characteristic">
+					<div class="project__characteristic-title">{{ trans('project.note') }}</div>
+					<div class="project__characteristic-value">{{ project.fields.comment }}</div>
+				</div>
+			{% endif %}
+		</div>
+
+		<div class="problem">
+			{{ project.fields.annotation|raw }}
+		</div>
+	</body>
+</html>
