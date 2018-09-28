@@ -6,6 +6,7 @@ return [
     'section' => 'Section',
     'company' => 'Company',
     'expected economic impact' => 'Expected economic impact',
+    'real economic impact' => 'Real economic impact',
     'year' => 'Year of project creation',
     'note' => 'Note',
     'status-0' => 'Not implemented',

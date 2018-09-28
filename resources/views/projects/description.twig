@@ -15,10 +15,10 @@
 
 			{% set statusClasses = ['project__characteristic-value_not-implemented', 'project__characteristic-value_begin', 'project__characteristic-value_done'] %}
 
-			{% if not project.fields.projectStatus is null %}
+			{% if not project.fields.projectResult is null %}
 				<div class="project__characteristic">
 					<div class="project__characteristic-title">{{ trans('project.status') }}</div>
-					<div class="{{ statusClasses[project.fields.projectStatus] }}">{{ trans('project.status-' ~ project.fields.projectStatus) }}</div>
+					<div class="{{ statusClasses[project.fields.projectResult] }}">{{ trans('project.status-' ~ project.fields.projectResult) }}</div>
 				</div>
 			{% endif %}
 

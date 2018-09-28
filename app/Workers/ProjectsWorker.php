@@ -139,7 +139,8 @@ class ProjectsWorker extends BaseWorker
         $html = view('projects/description', ['project' => $project])->render();
         
         Element::update(self::PROJECTS_COLLECTION, $project->id, [
-            'description' => $html
+            'description' => $html,
+            'subtitle' => trans('project.status-' . $project->fields['projectResult'])
         ], $this->user->backend);
     }
 
