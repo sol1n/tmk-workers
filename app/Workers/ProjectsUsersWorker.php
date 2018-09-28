@@ -41,8 +41,30 @@ class ProjectsUsersWorker extends BaseWorker
         $file = fopen(storage_path('app/base.csv'), 'r');
         while (($line = fgetcsv($file, 99999, ';')) !== false) {
             $author = trim($line[1]);
-            $curator = trim($line[2]);
+            $authorPosition = trim($line[2]);
+            $authorCompany = trim($line[3]);
+            $authorCompany = str_replace(' ', '', $authorCompany);
+
+            $curator = trim($line[4]);
+            $curatorPosition = trim($line[5]);
+            $curatorCompany = $authorCompany;
             $project = trim($line[0]);
+
+            $textAuthor = $author;
+            if ($authorCompany) {
+                $textAuthor .= ', ' . $authorCompany;
+            }
+            if ($authorPosition) {
+                $textAuthor .= ', ' . $authorPosition;
+            }
+
+            $textCurator = $curator;
+            if ($authorCompany) {
+                $textCurator .= ', ' . $curatorCompany;
+            }
+            if ($curatorPosition) {
+                $textCurator .= ', ' . $curatorPosition;
+            }
 
             $t = explode(' ', $author);
             if (is_array($t) && count($t) > 1) {
@@ -66,6 +88,14 @@ class ProjectsUsersWorker extends BaseWorker
                 $authors[] = $allProfiles[$author];
             }
 
+            if ($allProjects->get($project)) {
+                Element::update('ProjectBase', $allProjects->get($project), [
+                    'textCompany' => $authorCompany,
+                    'textAuthor' => $textAuthor,
+                    'textCurator' => $textCurator
+                ], $this->user->backend);
+            }
+
             if ($curators && $authors) {
                 if ($allProjects->get($project)) {
                     Element::update('ProjectBase', $allProjects->get($project), [
@@ -75,7 +105,7 @@ class ProjectsUsersWorker extends BaseWorker
                 }
             }
         }
-        
+
         fclose($file);
 
         dd($processedProjects);
