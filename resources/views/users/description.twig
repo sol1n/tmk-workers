@@ -1,0 +1,51 @@
+<div class="accordeon">
+  {% if user.description %}
+    <div class="accordeon__item">
+      <div class="accordeon__item-header">
+        <div class="accordeon__item-text accordeon__item-text_bold">
+          {{ trans('users.biography', {}, locale) }}
+        </div>
+      </div>
+      <div class="accordeon__item-description">
+        {{ user.description|raw }}
+      </div>
+    </div>
+  {% endif %}
+  {% if user.rewards %}
+    <div class="accordeon__item">
+      <div class="accordeon__item-header">
+        <div class="accordeon__item-text accordeon__item-text_bold">
+          {{ trans('users.rewards', {}, locale) }}
+        </div>
+      </div>
+      <div class="accordeon__item-description">
+        {{ user.rewards|raw }}
+      </div>
+    </div>
+  {% endif %}
+</div>
+<script>
+  document.addEventListener("DOMContentLoaded", ready);
+  function ready() {
+    function toggle(event) {
+      if (!this.classList.contains('accordeon__item')) return;
+      for (var i = 0; i < items.length; i++) {
+        if (items[i] !== this) {
+          items[i].classList.remove('accordeon__item_opened');
+        }
+      }
+      this.addEventListener('transitionend', sendToNative, false)
+      this.classList.toggle('accordeon__item_opened');
+    }
+    function sendToNative(event) {
+      this.removeEventListener('transitionend', sendToNative);
+      setTimeout(function () {
+        window.webkit.messageHandlers.interOp.postMessage(document.documentElement.offsetHeight);
+      }, 300);
+    }
+    var items = document.querySelectorAll('.accordeon__item');
+    for (var i = 0; i < items.length; i++) {
+      items[i].addEventListener('click', toggle)
+    }
+  }
+</script>

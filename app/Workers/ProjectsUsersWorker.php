@@ -24,13 +24,13 @@ class ProjectsUsersWorker extends BaseWorker
             'lastName' => [
                 '$exists' => true
             ]
-        ])->mapWithKeys(function($item) {
+        ])->mapWithKeys(function ($item) {
             return [($item->fields['lastName'] . ' ' . $item->fields['firstName']) => $item->id];
         });
 
         $allProjects = Element::list('ProjectBase', $this->user->backend, [
             'take' => -1
-        ])->mapWithKeys(function($item) {
+        ])->mapWithKeys(function ($item) {
             return [trim($item->fields['title']) => $item->id];
         });
 
