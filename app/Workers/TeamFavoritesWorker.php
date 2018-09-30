@@ -88,27 +88,52 @@ class TeamFavoritesWorker extends BaseWorker
         }
     }
 
-    protected function createEventsScores(array $eventsIds, Collection $teams)
+    protected function createEventsScores(Element $team)
     {
-        foreach ($eventsIds as $eventId) {
-            foreach ($teams as $team) {
-                $existed = Element::list('TeamStandingsScores', $this->user->backend, [
-                    'take' => -1,
-                    'where' => [
-                        'eventId' => $eventId,
-                        'teamId' => $team->id
-                    ]
-                ]);
+        $existed = Element::list('TeamStandingsScores', $this->user->backend, [
+            'take' => -1,
+            'where' => [
+                'teamId' => $team->id
+            ]
+        ]);
 
-                if ($existed->count() == 0) {
-                    foreach (self::DATES as $date) {
-                        Element::create('TeamStandingsScores', [
-                            'teamId' => $team->id,
-                            'eventId' => $eventId,
-                            'date' => Carbon::parse($date, 'UTC')->toAtomString(),
-                        ], $this->user->backend);
+        if ($existed->count() == 0) {
+
+            $eventsIds = array_merge($team->fields['eventsIds1'], $team->fields['eventsIds2']);
+            $eventsIds = array_unique($eventsIds);
+            $eventsIds = array_values($eventsIds);
+
+            $events = Element::list('Events', $this->user->backend, [
+                'take' => -1,
+                'where' => [
+                    'id' => [
+                        '$in' => $eventsIds
+                    ]
+                ]
+            ]);
+
+            $eventsToCreate = [];
+
+            $events->each(function($event) use(&$eventsToCreate) {
+                $date = Carbon::parse($event->fields['beginAt'], 'UTC')->format('j');
+                $title = $event->fields['title'];
+                if (isset($eventsToCreate[$title])) {
+                    $existedDate = Carbon::parse($eventsToCreate[$title]->fields['beginAt'], 'UTC')->format('j');
+                    if ($date > $existedDate) {
+                        $eventsToCreate[$title] = $event;
                     }
+                } else {
+                    $eventsToCreate[$title] = $event;
                 }
+            });
+
+            foreach ($eventsToCreate as $event) {
+                Element::create('TeamStandingsScores', [
+                    'teamId' => $team->id,
+                    'eventId' => $event->id,
+                    'date' => Carbon::parse($event->fields['beginAt'], 'UTC')->toAtomString(),
+                    'score' => array_random([-20, -10, 0, 10, 20])
+                ], $this->user->backend);
             }
         }
     }
@@ -140,7 +165,6 @@ class TeamFavoritesWorker extends BaseWorker
             }
         });
 
-        $allEvents = $eventsIds;
         $eventsIds = [];
         $teams->each(function ($item) use (&$eventsIds) {
             if (isset($item->fields['eventsIds2']) && is_array($item->fields['eventsIds2'])) {
@@ -151,9 +175,6 @@ class TeamFavoritesWorker extends BaseWorker
         });
 
         $this->markEvents(array_keys($eventsIds));
-        $allEvents = array_merge($allEvents, $eventsIds);
-
-        $this->createEventsScores(array_keys($allEvents), $teams);
 
         $teams->each(function ($team) {
             if (!isset($team->fields['eventsIds2']) or !is_array($team->fields['eventsIds2']) or count($team->fields['eventsIds2']) == 0) {
@@ -165,6 +186,8 @@ class TeamFavoritesWorker extends BaseWorker
                     $this->createFavoriteItem($team->fields['eventsIds2'], $userId);
                 }
             }
+
+            $this->createEventsScores($team);
         });
     }
 }
