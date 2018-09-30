@@ -122,6 +122,9 @@ class ProjectsWorker extends BaseWorker
         $section = $this->structure['sections'][$project->fields['parentId']];
         $project->section = $section->fields['title'] ?? '';
         $project->curators = $project->fields['textCurator'] ?? '';
+        if ($project->fields['textCurator'] && substr($project->fields['textCurator'], 0, 1) == ',') {
+            $project->curators = '';
+        }
         $project->authors = $project->fields['textAuthor'] ?? '';
         $project->company = $project->fields['textCompany'] ?? '';
 
