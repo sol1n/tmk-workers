@@ -29,13 +29,13 @@ class RatingsFiller extends BaseWorker
         ]);
     }
 
-    protected function getScores(Carbon $date)
+    protected function getScores(Carbon $currentDate, $locale = 'ru')
     {
         $scores = Element::list('TeamStandingsScores', $this->user->backend, [
             'take' => -1,
             'where' => [
                 'date' => [
-                    '$lt' => $date->endOfDay()->toAtomString()
+                    '$lt' => $currentDate->endOfDay()->toAtomString()
                 ]
             ],
             'order' => [
@@ -64,7 +64,7 @@ class RatingsFiller extends BaseWorker
 
             $title = implode(' ', [
                 Carbon::parse($score->fields['date'], 'UTC')->format('j'),
-                mb_strtolower(__('months.full.' . Carbon::parse($score->fields['date'], 'UTC')->month))
+                mb_strtolower(__('months.full.' . Carbon::parse($score->fields['date'], 'UTC')->month, [], $locale))
             ]);
 
             $teams[$teamId]['dates'][$date] = [
@@ -83,7 +83,28 @@ class RatingsFiller extends BaseWorker
             $teams[$teamId]['dates'][$date]['dayTotal'] += $score->fields['score'];
         }
 
-        return $teams;
+
+        $maxIndex = [];
+        $maxScore = -10000;
+
+        foreach ($teams as $teamId => $team) {
+            if ($team['total'] >= $maxScore) {
+                $maxScore = $team['total'];
+                if (isset($maxIndex[$team['total']])) {
+                    $maxIndex[$team['total']][] = $teamId;
+                } else {
+                    $maxIndex[$team['total']] = [$teamId];
+                }
+            }
+        }
+
+        if ($maxScore > -10000) {
+            foreach ($maxIndex[$maxScore] as $teamId) {
+                $teams[$teamId]['winner'] = true;
+            }
+        }
+
+        return collect($teams)->sortByDesc('total');
     }
 
     public function handle()
@@ -91,33 +112,64 @@ class RatingsFiller extends BaseWorker
         $pages = $this->getPages();
         $events = Element::list('Events', $this->user->backend, [
             'take' => -1
-        ])->mapWithKeys(function($item) {
+        ], ['en']);
+
+        $ruEvents = $events->mapWithKeys(function ($item) {
             return [$item->id => $item->fields['title']];
+        });
+
+        $enEvents = $events->mapWithKeys(function ($item) {
+            return [
+                $item->id => isset($item->languages['en']['title'])
+                    ? $item->languages['en']['title']
+                    : $item->fields['title']
+            ];
         });
 
         $teams = Element::list('TeamStandingsTeams', $this->user->backend, [
             'take' => -1
-        ])->mapWithKeys(function($item) {
+        ], ['en']);
+
+        $ruTeams = $teams->mapWithKeys(function ($item) {
             return [$item->id => $item->fields['title']];
+        });
+
+        $enTeams = $teams->mapWithKeys(function ($item) {
+            return [
+                $item->id => isset($item->languages['en']['title'])
+                    ? $item->languages['en']['title']
+                    : $item->fields['title']
+            ];
         });
 
         foreach ($pages as $page) {
             $date = Carbon::parse($page->fields['date'], 'UTC');
 
-            $scores = $this->getScores($date);
-
             $html = view('ratings/description', [
-                'scores' => $scores,
-                'events' => $events,
-                'teams' => $teams,
-                'currentDate' => $date->format('d.m.Y')
+                'scores' => $this->getScores($date, 'ru'),
+                'events' => $ruEvents,
+                'teams' => $ruTeams,
+                'currentDate' => $date->format('d.m.Y'),
+                'locale' => 'ru'
             ])->render();
 
             Element::update('TeamStandings', $page->id, [
                 'html' => $html
             ], $this->user->backend);
 
+            $enHtml = view('ratings/description', [
+                'scores' => $this->getScores($date, 'en'),
+                'events' => $enEvents,
+                'teams' => $enTeams,
+                'currentDate' => $date->format('d.m.Y'),
+                'locale' => 'en'
+            ])->render();
 
+            Element::updateLanguages('TeamStandings', $page->id, [
+                'en' => [
+                    'html' => $enHtml
+                ]
+            ], $this->user->backend);
         }
     }
 }

@@ -5,9 +5,9 @@
 <title></title>
 <div class="catalog">
    <div id="result-parent" class="result-parent">
-      <div class="result-team-title">Команды</div>
-      <div class="result-team-score">За день</div>
-      <div class="result-team-score">Итого</div>
+      <div class="result-team-title">{{ trans('rating.teams', {}, locale) }}</div>
+      <div class="result-team-score">{{ trans('rating.per day', {}, locale) }}</div>
+      <div class="result-team-score">{{ trans('rating.total', {}, locale) }}</div>
    </div>
 
    {% for teamId, teamInfo in scores %}
@@ -15,11 +15,24 @@
          <div id="result-parent" class="result-parent-event">
             <div class="result-event-title">{{ teams[teamId] }}</div>
             {% if (teamInfo.dates[currentDate]['dayTotal'] > 0) %}
-               <div class="result-event-score plus"><img class="winner" src="http://static.appercode.com/tmk/images/trophy.svg">{{ teamInfo.dates[currentDate]['dayTotal'] }}</div>
+               <div class="result-event-score plus">
+                  +{{ teamInfo.dates[currentDate]['dayTotal'] }}
+               </div>
+            {% elseif (teamInfo.dates[currentDate]['dayTotal'] == 0) %}
+               <div class="result-event-score">
+                  {{ teamInfo.dates[currentDate]['dayTotal'] }}
+               </div>
             {% else %}
-               <div class="result-event-score minus"><img class="winner" src="http://static.appercode.com/tmk/images/trophy.svg">{{ teamInfo.dates[currentDate]['dayTotal'] }}</div>
+               <div class="result-event-score minus">
+                  {{ teamInfo.dates[currentDate]['dayTotal'] }}
+               </div>
             {% endif %}
-            <div class="result-event-score">{{ teamInfo['total'] }}</div>
+            <div class="result-event-score">
+               {% if teamInfo.winner %}
+                  <img class="winner" src="http://static.appercode.com/tmk/images/trophy.svg">
+               {% endif %}
+               {{ teamInfo['total'] }}
+            </div>
          </div>
       </div>
       <div class="highlight">
@@ -37,9 +50,20 @@
                         <div class="event-score">0</div>
                      {% else %}
                         {% if score.fields.score > 0 %}
-                           <div class="event-score plus">{{ score.fields.score }}</div>
+                           <div class="event-score plus">
+                              +{{ score.fields.score }}
+                              {% if teamInfo.winner %}
+                                 <img class="winner" src="http://static.appercode.com/tmk/images/trophy.svg">
+                              {% endif %}
+                           </div>
+                        {% elseif score.fields.score == 0 %}
+                           <div class="event-score">
+                              {{ score.fields.score }}
+                           </div>
                         {% else %}
-                           <div class="event-score minus">{{ score.fields.score }}</div>
+                           <div class="event-score minus">
+                              {{ score.fields.score }}
+                           </div>
                         {% endif %}
                      {% endif %}
                   </div>
