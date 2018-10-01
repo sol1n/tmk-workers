@@ -29,7 +29,7 @@ class RatingsFiller extends BaseWorker
         ]);
     }
 
-    protected function getScores(Carbon $currentDate, $locale = 'ru')
+    protected function getScores(Carbon $currentDate, $titles = [], $locale = 'ru')
     {
         $scores = Element::list('TeamStandingsScores', $this->user->backend, [
             'take' => -1,
@@ -51,6 +51,7 @@ class RatingsFiller extends BaseWorker
 
             $teams[$score->fields['teamId']] = [
                 'total' => 0,
+                'title' => $titles[$score->fields['teamId']] ?? '',
                 'dates' => []
             ];
         }
@@ -104,7 +105,19 @@ class RatingsFiller extends BaseWorker
             }
         }
 
-        return collect($teams)->sortByDesc('total');
+        $sort = function($a, $b) {
+            if ($a['total'] > $b['total']) {
+                return 1;
+            } elseif ($a['total'] == $b['total']) {
+                return strcasecmp($a['title'], $b['title']);
+            } else {
+                return -1;
+            }
+        };
+
+        uasort($teams, $sort);   
+
+        return $teams;
     }
 
     public function handle()
@@ -146,7 +159,7 @@ class RatingsFiller extends BaseWorker
             $date = Carbon::parse($page->fields['date'], 'UTC');
 
             $html = view('ratings/description', [
-                'scores' => $this->getScores($date, 'ru'),
+                'scores' => $this->getScores($date, $ruTeams->toArray(), 'ru'),
                 'events' => $ruEvents,
                 'teams' => $ruTeams,
                 'currentDate' => $date->format('d.m.Y'),
@@ -158,7 +171,7 @@ class RatingsFiller extends BaseWorker
             ], $this->user->backend);
 
             $enHtml = view('ratings/description', [
-                'scores' => $this->getScores($date, 'en'),
+                'scores' => $this->getScores($date, $enTeams->toArray(), 'en'),
                 'events' => $enEvents,
                 'teams' => $enTeams,
                 'currentDate' => $date->format('d.m.Y'),
