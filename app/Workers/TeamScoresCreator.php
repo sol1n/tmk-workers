@@ -99,7 +99,7 @@ class TeamScoresCreator extends BaseWorker
                     'teamId' => $team->id,
                     'eventId' => $event->id,
                     'date' => Carbon::parse($event->fields['beginAt'], 'UTC')->toAtomString(),
-                    'score' => array_random([-20, -10, 0, 10, 20])
+                    //'score' => array_random([-20, -10, 0, 10, 20])
                 ], $this->user->backend);
             }
         }
