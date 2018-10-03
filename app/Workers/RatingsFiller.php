@@ -124,7 +124,12 @@ class RatingsFiller extends BaseWorker
     {
         $pages = $this->getPages();
         $events = Element::list('Events', $this->user->backend, [
-            'take' => -1
+            'take' => -1,
+            'where' => [
+                'isPublished' => [
+                    '$in' => [true, false]
+                ]
+            ]
         ], ['en']);
 
         $ruEvents = $events->mapWithKeys(function ($item) {
