@@ -1,0 +1,58 @@
+<div class="program">
+  <div class="program__events-list">
+    <div class="catalog">
+      {% if (title) %}
+        <div class="catalog__title">
+          {{ title }}
+        </div>
+      {% endif %}
+
+      {% if departure %}
+        <div class="catalog__item">
+          <div class="catalog__item-icon">
+            <img src="https://api.appercode.com/v1/tmk/files/564a2d8f-10a9-4253-a261-a218dcd27360/download/ic-flyght.png">
+          </div>
+          <div class="catalog__item-text">
+            <div class="catalog__item-title">{{ departure }}</div>
+            <div class="catalog__item-subtitle">Время вылета
+            </div>
+          </div>
+        </div>
+      {% endif %}
+      
+      {% if departure2 %}
+        <div class="catalog__item">
+          <div class="catalog__item-icon">
+            <img src="https://api.appercode.com/v1/tmk/files/4e3b4518-6138-461d-bd0a-241647b1da98/download/ic-hotel.png">
+          </div>
+
+          <div class="catalog__item-text">
+            <div class="catalog__item-title">{{ departure2 }}</div>
+            <div class="catalog__item-subtitle">Время отъезда из п/о
+            </div>
+          </div>
+        </div>
+      {% endif %}
+      
+      {% if comment %}
+        <div class="catalog__item">
+          {% if image %}
+            <div class="catalog__item-icon">
+               <img src="https://api.appercode.com/v1/tmk/files/{{ image }}/download/car.jpg">
+            </div>
+          {% else %}
+            <div class="catalog__item-icon">
+               <img src="https://api.appercode.com/v1/tmk/files/126a6194-5b99-4ae9-bbc4-7ab3a4976401/download/multi.png">
+            </div>
+          {% endif %}
+
+          <div class="catalog__item-text">
+            <div class="catalog__item-title">{{ comment }}</div>
+            <div class="catalog__item-subtitle">Транспорт
+            </div>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>

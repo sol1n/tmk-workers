@@ -105,7 +105,7 @@ class RatingsFiller extends BaseWorker
             }
         }
 
-        $sort = function($a, $b) {
+        $sort = function ($a, $b) {
             if ($a['total'] > $b['total']) {
                 return 1;
             } elseif ($a['total'] == $b['total']) {
@@ -115,7 +115,7 @@ class RatingsFiller extends BaseWorker
             }
         };
 
-        uasort($teams, $sort);   
+        uasort($teams, $sort);
 
         return $teams;
     }
