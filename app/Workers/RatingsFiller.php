@@ -106,7 +106,7 @@ class RatingsFiller extends BaseWorker
         }
 
         $sort = function ($a, $b) {
-            if ($a['total'] > $b['total']) {
+            if ($a['total'] < $b['total']) {
                 return 1;
             } elseif ($a['total'] == $b['total']) {
                 return strcasecmp($a['title'], $b['title']);
