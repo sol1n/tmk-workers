@@ -1,0 +1,9 @@
+<h1>Video rating for time: {{ time|date('d.m.Y G:i:s', 'Europe/Moscow') }}</h1>
+{% for video in results %}
+	<h2>{{ video.title }}</h2>
+	<h3>{{ video.users|length }} likes</h3>
+
+	{% for user in video.users %}
+		<p>{{ user.lastName }} {{ user.firstName }}{% if user.company %} ({{ user.company }}){% endif %}</p>
+	{% endfor %}
+{% endfor %}
