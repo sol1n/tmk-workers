@@ -5,14 +5,15 @@ namespace App\Console\Commands;
 use Appercode\User;
 use Appercode\Backend;
 
-use App\Workers\DescriptionFixer;
+use App\Workers\MFES\ImportWorker;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
-class UpdateDescription extends Command
+class MFESImport extends Command
 {
     private $worker;
+
     private $logger;
 
     /**
@@ -20,14 +21,14 @@ class UpdateDescription extends Command
      *
      * @var string
      */
-    protected $signature = 'lectures:description';
+    protected $signature = 'mfes:import';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Updates lectures description';
+    protected $description = 'Event data sync with site';
 
     /**
      * Create a new command instance.
@@ -46,20 +47,19 @@ class UpdateDescription extends Command
      */
     public function handle()
     {
+        $token = env('MFES_TOKEN');
+
         $this->logger = Log::channel('regular');
         $this->logger->info('Started');
-
-        $token = env('TOKEN');
 
         if (is_null($token)) {
             $this->logger->error('Token not provided');
             exit(1);
         }
 
-        $user = User::LoginByToken((new Backend), $token);
-        $this->worker = new DescriptionFixer($user, $this->logger);
-        $this->worker->handle();
+        $user = User::LoginByToken((new Backend('electroseti')), $token);
 
-        $this->logger->info('All done');
+        $this->worker = new ImportWorker($user, $this->logger);
+        $this->worker->handle();
     }
 }
