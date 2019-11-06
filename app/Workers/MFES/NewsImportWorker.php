@@ -14,7 +14,7 @@ use Symfony\Component\HttpFoundation\File\UploadedFile as SymfonyUploadedFile;
 
 use Carbon\Carbon;
 
-class ImportWorker extends BaseWorker
+class NewsImportWorker extends BaseWorker
 {
     const BASE_URL = 'https://expoelectroseti.ru';
     const NEWS_LIST_URL = 'https://expoelectroseti.ru/app/news.php';
