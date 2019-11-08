@@ -124,11 +124,11 @@ class NewsImportWorker extends BaseWorker
                     }
 
                     Element::update('News', $existedNews->get($one->ID)->id, [
-                        'title' => $one->NAME,
+                        'title' => trim(htmlspecialchars_decode($one->NAME)),
                         'externalId' => $one->ID,
                         'publishedAt' => Carbon::parse($one->ACTIVE_FROM, 'Europe/Moscow')->toAtomString(),
                         'imageFileId' => $file->id,
-                        'description' => $extended->DETAIL_TEXT,
+                        'description' => '<p>' . $extended->DETAIL_TEXT . '</p>',
                         'tagsIds' => $tagIds,
                         'externalUpdatedAt' => $one->UPDATE_TIME
                     ], $this->user->backend);
@@ -155,11 +155,11 @@ class NewsImportWorker extends BaseWorker
                 }
 
                 $element = Element::create('News', [
-                    'title' => $one->NAME,
+                    'title' => trim(htmlspecialchars_decode($one->NAME)),
                     'externalId' => $one->ID,
                     'publishedAt' => Carbon::parse($one->ACTIVE_FROM, 'Europe/Moscow')->toAtomString(),
                     'imageFileId' => $file->id,
-                    'description' => $extended->DETAIL_TEXT,
+                    'description' => '<p>' . $extended->DETAIL_TEXT . '</p>',
                     'tagsIds' => $tagIds,
                     'externalUpdatedAt' => $one->UPDATE_TIME
                 ], $this->user->backend);

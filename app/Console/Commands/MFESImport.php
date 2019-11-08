@@ -61,9 +61,9 @@ class MFESImport extends Command
         $user = User::LoginByToken((new Backend('electroseti')), $token);
 
         $newsWorker = new NewsImportWorker($user, $this->logger);
-        //$newsWorker->handle();
+        $newsWorker->handle();
 
-        $programWorker = new ProgramImportWorker($user, $this->logger);
-        $programWorker->handle();
+        // $programWorker = new ProgramImportWorker($user, $this->logger);
+        // $programWorker->handle();
     }
 }
