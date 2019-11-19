@@ -7,6 +7,7 @@ use Appercode\Backend;
 
 use App\Workers\MFES\NewsImportWorker;
 use App\Workers\MFES\ProgramImportWorker;
+use App\Workers\MFES\PartnersImportWorker;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
@@ -60,10 +61,15 @@ class MFESImport extends Command
 
         $user = User::LoginByToken((new Backend('electroseti')), $token);
 
+        $partnersWorker = new PartnersImportWorker($user, $this->logger);
+        $partnersWorker->handle();
+
         $newsWorker = new NewsImportWorker($user, $this->logger);
         $newsWorker->handle();
 
-        // $programWorker = new ProgramImportWorker($user, $this->logger);
-        // $programWorker->handle();
+        $programWorker = new ProgramImportWorker($user, $this->logger);
+        $programWorker->handle();
+
+        $this->logger->info('All done');
     }
 }

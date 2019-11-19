@@ -91,16 +91,19 @@ class ProgramImportWorker extends BaseWorker
                     '$exists' => true
                 ]
             ]
-        ])->mapWithKeys(function(Element $area) {
-            return [$area->fields['externalId'] => $area];
+        ])->mapWithKeys(function(Element $event) {
+            return [$event->fields['externalId'] => $event];
         });
 
         $users = Element::list('UserProfiles', $this->user->backend, [
             'take' => -1,
-            'include' => ['id', 'externalId', 'externalUpdatedAt', 'createdAt', 'updatedAt', 'ownerId', 'userId'],
+            'include' => ['id', 'externalId', 'externalUpdatedAt', 'createdAt', 'updatedAt', 'ownerId', 'userId', 'isPublished'],
             'where' => [
                 'externalId' => [
                     '$exists' => true
+                ],
+                'isPublished' => [
+                    '$in' => [true, false]
                 ]
             ]
         ])->mapWithKeys(function(Element $user) {
@@ -109,6 +112,11 @@ class ProgramImportWorker extends BaseWorker
 
         $tags = Element::list('TagsEvents', $this->user->backend, [
             'take' => -1,
+            'where' => [
+                'isPublished' => [
+                    '$in' => [true, false]
+                ]
+            ],
             'include' => ['id', 'title', 'createdAt', 'updatedAt', 'ownerId', 'userId']
         ])->mapWithKeys(function(Element $tag) {
             return [$tag->fields['title'] => $tag];
@@ -117,6 +125,10 @@ class ProgramImportWorker extends BaseWorker
         $fetchedTags = [];
         foreach ($eventsData as $day) {
             foreach ($day->HALLS as $area) {
+                if (isset($area->NAME) && $area->NAME) {
+                    $fetchedTags[trim(htmlspecialchars_decode($area->NAME))] = 1;
+                }
+
                 if (isset($area->EVENTS) && is_array($area->EVENTS)) {
                     foreach ($area->EVENTS as $event) {
                         if (isset($event->TYPE) && $event->TYPE) {
@@ -137,10 +149,11 @@ class ProgramImportWorker extends BaseWorker
                 ], $this->user->backend);
 
                 $tags[$title] = $newTag;
-                $this->log('Created tag ' . trim($area->NAME) . ' (https://web.appercode.com/electroseti/TagsEvents/' . $newTag->id . '/edit)');
+                $this->log('Created tag ' . trim($title) . ' (https://web.appercode.com/electroseti/TagsEvents/' . $newTag->id . '/edit)');
             }
         }
 
+        $moders = [];
         $fetchedSpeakers = [];
         foreach ($eventsData as $day) {
             foreach ($day->HALLS as $area) {
@@ -155,6 +168,7 @@ class ProgramImportWorker extends BaseWorker
                         if (isset($event->MODERS) && is_array($event->MODERS)) {
                             foreach ($event->MODERS as $fetchedSpeaker) {
                                 $fetchedSpeakers[$fetchedSpeaker->ID] = $fetchedSpeaker;
+                                $moders[$fetchedSpeaker->ID] = 1;
                             }
                         }
                     }
@@ -163,6 +177,8 @@ class ProgramImportWorker extends BaseWorker
         }
 
         foreach ($fetchedSpeakers as $fetchedSpeaker) {
+            $speakerName = trim(htmlspecialchars_decode($fetchedSpeaker->LAST_NAME)) . ' ' . trim(htmlspecialchars_decode($fetchedSpeaker->NAME));
+
             if (!$users->has($fetchedSpeaker->ID)) {
                 $username = $fetchedSpeaker->ID . rand(100,999);
                 $user = User::create($this->user->backend, [
@@ -172,41 +188,36 @@ class ProgramImportWorker extends BaseWorker
                     'isPasswordExpired' => true
                 ]);
 
-                $fio = trim($fetchedSpeaker->NAME);
-                $fio = explode(' ', $fio);
-
                 $extension = explode('.', $fetchedSpeaker->DETAIL_PIC);
                 $extension = $extension[count($extension) - 1];
 
                 if (isset($fetchedSpeaker->DETAIL_PIC) && $fetchedSpeaker->DETAIL_PIC) {
-                    $photo = $this->uploadFile(self::BASE_URL . $fetchedSpeaker->DETAIL_PIC, self::SPEAKERS_PHOTOS_DIR, trim($fetchedSpeaker->NAME) . $extension);
+                    $photo = $this->uploadFile(self::BASE_URL . $fetchedSpeaker->DETAIL_PIC, self::SPEAKERS_PHOTOS_DIR, $speakerName . '.' . $extension);
                 } else {
                     $photo = null;
                 }
 
                 $profile = Element::create('UserProfiles', [
                     'userId' => $user->id,
-                    'firstName' => $fio[1] ?? '',
-                    'lastName' => $fio[0] ?? '',
-                    'middleName' => $fio[2] ?? '',
+                    'firstName' => trim(htmlspecialchars_decode($fetchedSpeaker->NAME)) ?? '',
+                    'lastName' => trim(htmlspecialchars_decode($fetchedSpeaker->LAST_NAME)) ?? '',
+                    'middleName' => trim(htmlspecialchars_decode($fetchedSpeaker->SER_NAME)) ?? '',
                     'code' => $username,
-                    'photoFileId' => $photo->id,
+                    'photoFileId' => $photo->id ?? null,
                     'groupIds' => [self::SPEAKERS_GROUP],
                     'position' => trim(htmlspecialchars_decode($fetchedSpeaker->POSITION)),
                     'company' => trim(htmlspecialchars_decode($fetchedSpeaker->COMPANY)),
                     'tagsIds' => [self::SPEAKERS_TAG],
                     'externalId' => $fetchedSpeaker->ID,
                     'externalUpdatedAt' => $fetchedSpeaker->UPDATE_TIME,
+                    'orderIndex' => 100
                 ], $this->user->backend);
-
-                $enFio = trim($fetchedSpeaker->NAME_ENG);
-                $enFio = explode(' ', $enFio);
 
                 Element::updateLanguages('UserProfiles', $profile->id, [
                     'en' => [
-                        'firstName' => $enFio[1] ?? '',
-                        'lastName' => $enFio[0] ?? '',
-                        'middleName' => $enFio[2] ?? '',
+                        'firstName' => trim(htmlspecialchars_decode($fetchedSpeaker->NAME_ENG)) ?? '',
+                        'lastName' => trim(htmlspecialchars_decode($fetchedSpeaker->LAST_NAME_ENG)) ?? '',
+                        'middleName' => trim(htmlspecialchars_decode($fetchedSpeaker->SER_NAME_ENG)) ?? '',
                         'position' => trim(htmlspecialchars_decode($fetchedSpeaker->POSITION_ENG)),
                         'company' => trim(htmlspecialchars_decode($fetchedSpeaker->COMPANY_ENG))
                     ]
@@ -214,50 +225,45 @@ class ProgramImportWorker extends BaseWorker
 
                 $users[$fetchedSpeaker->ID] = $profile;
 
-                $this->log('Created user ' . trim($fetchedSpeaker->NAME) . ' (https://web.appercode.com/electroseti/users/' . $user->id . '/edit)');
+                $this->log('Created user ' . $speakerName . ' (https://web.appercode.com/electroseti/users/' . $user->id . '/edit)');
             } elseif ($users[$fetchedSpeaker->ID]->fields['externalUpdatedAt'] != $fetchedSpeaker->UPDATE_TIME) {
-
-                $fio = trim($fetchedSpeaker->NAME);
-                $fio = explode(' ', $fio);
 
                 $extension = explode('.', $fetchedSpeaker->DETAIL_PIC);
                 $extension = $extension[count($extension) - 1];
 
-                if (isset($fetchedSpeaker->DETAIL_PIC) && $fetchedSpeaker->DETAIL_PIC) {
-                    $photo = $this->uploadFile(self::BASE_URL . $fetchedSpeaker->DETAIL_PIC, self::SPEAKERS_PHOTOS_DIR, trim($fetchedSpeaker->NAME) . $extension);
+                if (isset($fetchedSpeaker->DETAIL_PIC) && $fetchedSpeaker->DETAIL_PIC && $fetchedSpeaker->DETAIL_PIC != '/') {
+                    $photo = $this->uploadFile(self::BASE_URL . $fetchedSpeaker->DETAIL_PIC, self::SPEAKERS_PHOTOS_DIR, $speakerName . '.' . $extension);
                 } else {
                     $photo = null;
                 }
 
                 Element::update('UserProfiles', $users[$fetchedSpeaker->ID]->id, [
-                    'firstName' => $fio[1] ?? '',
-                    'lastName' => $fio[0] ?? '',
-                    'middleName' => $fio[2] ?? '',
-                    'photoFileId' => $photo->id,
+                    'firstName' => trim(htmlspecialchars_decode($fetchedSpeaker->NAME)) ?? '',
+                    'lastName' => trim(htmlspecialchars_decode($fetchedSpeaker->LAST_NAME)) ?? '',
+                    'middleName' => trim(htmlspecialchars_decode($fetchedSpeaker->SER_NAME)) ?? '',
+                    'photoFileId' => $photo->id ?? null,
                     'groupIds' => [self::SPEAKERS_GROUP],
                     'position' => trim(htmlspecialchars_decode($fetchedSpeaker->POSITION)),
                     'company' => trim(htmlspecialchars_decode($fetchedSpeaker->COMPANY)),
                     'tagsIds' => [self::SPEAKERS_TAG],
                     'externalId' => $fetchedSpeaker->ID,
                     'externalUpdatedAt' => $fetchedSpeaker->UPDATE_TIME,
+                    'orderIndex' => 100
                 ], $this->user->backend);
-
-                $enFio = trim($fetchedSpeaker->NAME_ENG);
-                $enFio = explode(' ', $enFio);
 
                 Element::updateLanguages('UserProfiles', $users[$fetchedSpeaker->ID]->id, [
                     'en' => [
-                        'firstName' => $enFio[1] ?? '',
-                        'lastName' => $enFio[0] ?? '',
-                        'middleName' => $enFio[2] ?? '',
+                        'firstName' => trim(htmlspecialchars_decode($fetchedSpeaker->NAME_ENG)) ?? '',
+                        'lastName' => trim(htmlspecialchars_decode($fetchedSpeaker->LAST_NAME_ENG)) ?? '',
+                        'middleName' => trim(htmlspecialchars_decode($fetchedSpeaker->SER_NAME_ENG)) ?? '',
                         'position' => trim(htmlspecialchars_decode($fetchedSpeaker->POSITION_ENG)),
                         'company' => trim(htmlspecialchars_decode($fetchedSpeaker->COMPANY_ENG))
                     ]
                 ], $this->user->backend);
 
-                $this->log('Updated user ' . trim($fetchedSpeaker->NAME) . ' (https://web.appercode.com/electroseti/users/' . $users[$fetchedSpeaker->ID]->fields['userId'] . '/edit)');
+                $this->log('Updated user ' . $speakerName . ' (https://web.appercode.com/electroseti/users/' . $users[$fetchedSpeaker->ID]->fields['userId'] . '/edit)');
             } else {
-                $this->log('Passed user ' . trim($fetchedSpeaker->NAME) . ' (https://web.appercode.com/electroseti/users/' . $users[$fetchedSpeaker->ID]->fields['userId'] . '/edit)');
+                $this->log('Passed user ' . $speakerName . ' (https://web.appercode.com/electroseti/users/' . $users[$fetchedSpeaker->ID]->fields['userId'] . '/edit)');
             }
         }
 
@@ -280,14 +286,14 @@ class ProgramImportWorker extends BaseWorker
                     foreach ($area->EVENTS as $event) {
                         $eventSpeakers = [];
 
-                        if (isset($event->SPEAKERS) && is_array($event->SPEAKERS)) {
-                            foreach ($event->SPEAKERS as $fetchedSpeaker) {
+                        if (isset($event->MODERS) && is_array($event->MODERS)) {
+                            foreach ($event->MODERS as $fetchedSpeaker) {
                                 $eventSpeakers[$fetchedSpeaker->ID] = $fetchedSpeaker;
                             }
                         }
 
-                        if (isset($event->MODERS) && is_array($event->MODERS)) {
-                            foreach ($event->MODERS as $fetchedSpeaker) {
+                        if (isset($event->SPEAKERS) && is_array($event->SPEAKERS)) {
+                            foreach ($event->SPEAKERS as $fetchedSpeaker) {
                                 $eventSpeakers[$fetchedSpeaker->ID] = $fetchedSpeaker;
                             }
                         }
@@ -296,6 +302,8 @@ class ProgramImportWorker extends BaseWorker
                             $extendedEventInfo = file_get_contents(self::PROGRAM_DETAIL_URL . $event->ID);
                             $extendedEventInfo = json_decode($extendedEventInfo);
 
+                            $description = str_replace('style="text-align: justify;"', '', $extendedEventInfo->DETAIL_TEXT ?? '');
+
                             $newEvent = Element::create('Events', [
                                 'externalId' => $event->ID,
                                 'externalUpdatedAt' => $event->UPDATE_TIME,
@@ -303,12 +311,19 @@ class ProgramImportWorker extends BaseWorker
                                 'areaId' => $areas[$areaExternalId]->id,
                                 'beginAt' => Carbon::parse($event->DATE_ACTIVE_FROM, 'UTC')->setTimezone('Europe/Moscow')->toAtomString(),
                                 'endAt' => Carbon::parse($event->DATE_ACTIVE_TO, 'UTC')->setTimezone('Europe/Moscow')->toAtomString(),
-                                'description' => $extendedEventInfo->DETAIL_TEXT ?? ''
+                                'description' => $description,
+                                'isCanceled' => false
+                            ], $this->user->backend);
+
+                            Element::updateLanguages('Events', $newEvent->id, [
+                                'en' => [
+                                    'title' => trim(htmlspecialchars_decode($event->NAME_ENG)) ?? '',
+                                    'description' => trim(htmlspecialchars_decode($event->DESC_ENG)) ?? ''
+                                ]
                             ], $this->user->backend);
 
                             foreach ($eventSpeakers as $eventSpeaker) {
                                 $userId = $users[$eventSpeaker->ID]->fields['userId'];
-
                                 EventMemberships::create($this->user->backend, [
                                     'eventSchemaId' => 'Events',
                                     'eventObjectId' => $newEvent->id,
@@ -330,6 +345,11 @@ class ProgramImportWorker extends BaseWorker
                             if (isset($event->VID) && $event->VID) {
                                 $tagIds[] = $tags[trim(htmlspecialchars_decode($event->VID))]->id;
                             }
+                            if (isset($area->NAME) && $area->NAME) {
+                                $tagIds[] = $tags[trim(htmlspecialchars_decode($area->NAME))]->id;
+                            }
+
+                            $description = str_replace('style="text-align: justify;"', '', $extendedEventInfo->DETAIL_TEXT ?? '');
 
                             Element::update('Events', $events[$event->ID]->id, [
                                 'externalId' => $event->ID,
@@ -338,21 +358,42 @@ class ProgramImportWorker extends BaseWorker
                                 'areaId' => $areas[$areaExternalId]->id,
                                 'beginAt' => Carbon::parse($event->DATE_ACTIVE_FROM, 'UTC')->setTimezone('Europe/Moscow')->toAtomString(),
                                 'endAt' => Carbon::parse($event->DATE_ACTIVE_TO, 'UTC')->setTimezone('Europe/Moscow')->toAtomString(),
-                                'description' => $extendedEventInfo->DETAIL_TEXT ?? '',
-                                'tagsIds' => $tagIds
+                                'description' => $description,
+                                'tagsIds' => $tagIds,
+                                'isCanceled' => false
                             ], $this->user->backend);
 
-                            // foreach ($eventSpeakers as $eventSpeaker) {
-                            //     $userId = $users[$eventSpeaker->ID]->fields['userId'];
+                            Element::updateLanguages('Events', $events[$event->ID]->id, [
+                                'en' => [
+                                    'title' => trim(htmlspecialchars_decode($event->NAME_ENG)) ?? '',
+                                    'description' => trim(htmlspecialchars_decode($event->DESC_ENG)) ?? ''
+                                ]
+                            ], $this->user->backend);
 
-                            //     EventMemberships::create($this->user->backend, [
-                            //         'eventSchemaId' => 'Events',
-                            //         'eventObjectId' => $events[$event->ID]->id,
-                            //         'userId' => $userId,
-                            //         'status' => 'confirmed',
-                            //         'type' => 'speaker'
-                            //     ]);
-                            // }
+                            $existedMemberships = EventMemberships::list($this->user->backend, [
+                                'where' => [
+                                    'eventSchemaId' => 'Events',
+                                    'eventObjectId' => $events[$event->ID]->id
+                                ],
+                                'take' => -1
+                            ]);
+
+                            if ($existedMemberships->count()) {
+                                $existedMembershipIds = $existedMemberships->pluck('id');
+                                EventMemberships::remove($this->user->backend, $existedMembershipIds->values()->toArray());
+                            }
+
+                            foreach ($eventSpeakers as $eventSpeaker) {
+                                $userId = $users[$eventSpeaker->ID]->fields['userId'];
+
+                                EventMemberships::create($this->user->backend, [
+                                    'eventSchemaId' => 'Events',
+                                    'eventObjectId' => $events[$event->ID]->id,
+                                    'userId' => $userId,
+                                    'status' => 'confirmed',
+                                    'type' => 'speaker'
+                                ]);
+                            }
 
                             $this->log('Updated event ' . trim(htmlspecialchars_decode($event->NAME)) . ' (https://web.appercode.com/electroseti/Events/' .$events[$event->ID]->id . '/edit)');
                         } else {
@@ -361,6 +402,26 @@ class ProgramImportWorker extends BaseWorker
                     }
                 }
             }
+        }
+
+        foreach ($users as $user) {
+            if (!isset($fetchedSpeakers[$user->fields['externalId']]) && $user->fields['isPublished']) {
+                Element::update('UserProfiles', $user->id, [
+                    'isPublished' => false,
+                ], $this->user->backend);
+            }
+
+            if (isset($fetchedSpeakers[$user->fields['externalId']]) && !$user->fields['isPublished']) {
+                Element::update('UserProfiles', $user->id, [
+                    'isPublished' => true,
+                ], $this->user->backend);
+            }
+        }
+
+        foreach ($moders as $moderId => $a) {
+            Element::update('UserProfiles', $users->get($moderId)->id, [
+                'orderIndex' => 1,
+            ], $this->user->backend);
         }
 
         $this->log('Events imported successfully');

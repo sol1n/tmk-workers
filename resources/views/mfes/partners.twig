@@ -1,0 +1,66 @@
+<div class="company_title">
+   <h3>{{ title }}</h3>
+</div>
+​
+{% if imageFileId %}
+   <div class="company_logo">
+      <img src="https://api.appercode.com/v1/electroseti/files/{{ imageFileId }}/download/{{ imageFileId }}.jpg" style="width: 100%;">
+   </div>
+{% endif %}
+​
+{% if description %}
+   <div class="company_activity">
+      <p>{{ description|raw }}</p>
+   </div>
+​{% endif %}
+
+{% if section %}
+   <div class="company_info">
+      <p>сфера деятельности компании: {{ section }}</p>
+   </div>
+{% endif %}
+​
+{% if svgId %}
+   <a class="b-title-arrow" href="html:?schemaId=Schema&amp;objectId=b16cc295-afec-47a9-a878-373663ba7e48&amp;message={{ svgId }}">
+      <div class="b-title-arrow__wrapper">
+         <div class="b-title-arrow__image"><img src="https://static.appercode.com/mmco/images/pin.svg" alt=""></div>
+         <div class="b-title-arrow__text">Стенд на выставке</div>
+      </div>
+   </a>
+{% endif %}
+​
+{% if site %}
+   <a class="b-title-arrow" href="{{ site }}">
+      <div class="b-title-arrow__wrapper">
+         <div class="b-title-arrow__image"><img src="https://static.appercode.com/mmco/images/link.svg" alt=""></div>
+         <div class="b-title-arrow__text">{{ clearSite }}</div>
+      </div>
+   </a>
+{% endif %}
+​
+{% if phone %}
+   <a class="b-title-arrow" href="tel:{{ phone }}">
+      <div class="b-title-arrow__wrapper">
+         <div class="b-title-arrow__image"><img src="https://static.appercode.com/mmco/images/phone.svg" alt=""></div>
+         <div class="b-title-arrow__text">{{ phone }}</div>
+      </div>
+   </a>
+{% endif %}
+​
+{% if email %}
+   <a class="b-title-arrow" href="mailto:{{ email }}">
+      <div class="b-title-arrow__wrapper">
+         <div class="b-title-arrow__image"><img src="https://static.appercode.com/mmco/images/email.svg" alt=""></div>
+         <div class="b-title-arrow__text">{{ email }}</div>
+      </div>
+   </a>
+{% endif %}
+​
+{% if address %}
+   <a class="b-title-arrow">
+      <div class="b-title-arrow__wrapper">
+         <div class="b-title-arrow__image"><img src="https://static.appercode.com/mmco/images/home.svg" alt=""></div>
+         <div class="b-title-no-arrow__text">{{ address }}</div>
+      </div>
+   </a>
+{% endif %}
