@@ -22,6 +22,7 @@ class ProgramImportWorker extends BaseWorker
     const PROGRAM_DETAIL_URL = 'https://expoelectroseti.ru/app/program.php?ELEMENT_ID=';
     const EVENTS_COLLECTION = 'Events';
     const SPEAKERS_PHOTOS_DIR = '17324f61-9192-4f7f-90aa-b84c4b185952';
+    const ALL_USERS_GROUP = '4f4ebc4b-6b34-4c65-9559-318f5efe3979';
     const SPEAKERS_GROUP = '1c605559-8196-4c64-b99a-4e4de0505e83';
     const SPEAKERS_TAG = '5d3188db-6cbd-466a-8779-6d8cef4f56b1';
 
@@ -191,7 +192,7 @@ class ProgramImportWorker extends BaseWorker
                 $extension = explode('.', $fetchedSpeaker->DETAIL_PIC);
                 $extension = $extension[count($extension) - 1];
 
-                if (isset($fetchedSpeaker->DETAIL_PIC) && $fetchedSpeaker->DETAIL_PIC) {
+                if (isset($fetchedSpeaker->DETAIL_PIC) && $fetchedSpeaker->DETAIL_PIC && $fetchedSpeaker->DETAIL_PIC != '/') {
                     $photo = $this->uploadFile(self::BASE_URL . $fetchedSpeaker->DETAIL_PIC, self::SPEAKERS_PHOTOS_DIR, $speakerName . '.' . $extension);
                 } else {
                     $photo = null;
@@ -204,7 +205,7 @@ class ProgramImportWorker extends BaseWorker
                     'middleName' => trim(htmlspecialchars_decode($fetchedSpeaker->SER_NAME)) ?? '',
                     'code' => $username,
                     'photoFileId' => $photo->id ?? null,
-                    'groupIds' => [self::SPEAKERS_GROUP],
+                    'groupIds' => [self::SPEAKERS_GROUP, self::ALL_USERS_GROUP],
                     'position' => trim(htmlspecialchars_decode($fetchedSpeaker->POSITION)),
                     'company' => trim(htmlspecialchars_decode($fetchedSpeaker->COMPANY)),
                     'tagsIds' => [self::SPEAKERS_TAG],
@@ -242,7 +243,7 @@ class ProgramImportWorker extends BaseWorker
                     'lastName' => trim(htmlspecialchars_decode($fetchedSpeaker->LAST_NAME)) ?? '',
                     'middleName' => trim(htmlspecialchars_decode($fetchedSpeaker->SER_NAME)) ?? '',
                     'photoFileId' => $photo->id ?? null,
-                    'groupIds' => [self::SPEAKERS_GROUP],
+                    'groupIds' => [self::SPEAKERS_GROUP, self::ALL_USERS_GROUP],
                     'position' => trim(htmlspecialchars_decode($fetchedSpeaker->POSITION)),
                     'company' => trim(htmlspecialchars_decode($fetchedSpeaker->COMPANY)),
                     'tagsIds' => [self::SPEAKERS_TAG],

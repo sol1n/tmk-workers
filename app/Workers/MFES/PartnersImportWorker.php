@@ -17,7 +17,7 @@ use Carbon\Carbon;
 class PartnersImportWorker extends BaseWorker
 {
     const BASE_URL = 'https://expoelectroseti.ru';
-    const STANDS_LIST_URL = 'https://expoelectroseti.ru/app/expo_partners.php';
+    const STANDS_LIST_URL = 'https://expoelectroseti.ru/app/stands.php';
     const PARTNERS_LIST_URL = 'https://expoelectroseti.ru/app/partners.php';
 
     const PARTNERS_FILE_FOLDER = 'b5d5b488-037b-4f88-a803-cb072beb0b7c';
@@ -90,9 +90,18 @@ class PartnersImportWorker extends BaseWorker
 
             $description = '<p></p><br><p><a data-link-generator="" data-schema-id="HtmlPages" data-object-id="b16cc295-afec-47a9-a878-373663ba7e48" href="html:?schemaId=HtmlPages&amp;objectId=b16cc295-afec-47a9-a878-373663ba7e48&amp;message=' . $externalId . '">Посмотреть на схеме выставки &gt;</a></p>';
 
+            $description = '';
+
+            $subtitle = '';
+            if (isset($exponent->SECTION) && is_array($exponent->SECTION)) {
+                $subtitle = implode(', ', $exponent->SECTION ?? []);
+            }
+
             if (!$exponents->has($externalId)) {
+                
                 $newPartner = Element::create('Partners', [
                     'title' => $exponent->ORG_NAME ?? '',
+                    'subtitle' => $subtitle,
                     'description' => $description,
                     'svgId' => $externalId,
                     'externalUpdatedAt' => $exponent->UPDATE_TIME
@@ -102,6 +111,7 @@ class PartnersImportWorker extends BaseWorker
             } elseif ($exponents[$externalId]->fields['externalUpdatedAt'] != $exponent->UPDATE_TIME) {
                 Element::update('Partners', $exponents[$externalId]->id, [
                     'title' => $exponent->ORG_NAME ?? '',
+                    'subtitle' => $subtitle,
                     'description' => $description,
                     'externalUpdatedAt' => $exponent->UPDATE_TIME
                 ], $this->user->backend);
