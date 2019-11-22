@@ -130,10 +130,14 @@ class PartnersImportWorker extends BaseWorker
 
             $clearSite = str_replace(['http://', 'https://'], '', $exponent->LINK ?? '');
 
+            $description = (isset($exponent->ABOUT_RUS) && is_string($exponent->ABOUT_RUS)) 
+                ? str_replace("\r\n", "<br/>\r\n", trim(htmlspecialchars_decode($exponent->ABOUT_RUS ?? '')))
+                : str_replace("\r\n", "<br/>\r\n", trim(htmlspecialchars_decode($exponent->ABOUT_RUS->TEXT ?? '')));
+
             $description = view('mfes/exponents', [
                 'title' => trim(htmlspecialchars_decode($exponent->ORG_NAME)),
                 'subtitle' => trim(htmlspecialchars_decode($subtitle)),
-                'description' => str_replace("\r\n", "<br/>\r\n", trim(htmlspecialchars_decode($exponent->ABOUT_RUS->TEXT ?? ''))),
+                'description' => $description,
                 'site' => $exponent->LINK ?? '',
                 'clearSite' => $clearSite,
                 'address' => $exponent->ADRES ?? '',
@@ -143,10 +147,14 @@ class PartnersImportWorker extends BaseWorker
             ])->render();
 
             if (isset($exponent->ABOUT_ENG->TEXT)) {
+                $descriptionEn = (isset($exponent->ABOUT_ENG) && is_string($exponent->ABOUT_ENG)) 
+                    ? str_replace("\r\n", "<br/>\r\n", trim(htmlspecialchars_decode($exponent->ABOUT_ENG ?? '')))
+                    : str_replace("\r\n", "<br/>\r\n", trim(htmlspecialchars_decode($exponent->ABOUT_ENG->TEXT ?? '')));
+                    
                 $descriptionEn = view('mfes/exponents', [
                     'title' => trim(htmlspecialchars_decode($exponent->ORG_NAME)),
                     'subtitle' => trim(htmlspecialchars_decode($subtitle)),
-                    'description' => str_replace("\r\n", "<br/>\r\n", trim(htmlspecialchars_decode($exponent->ABOUT_ENG->TEXT ?? ''))),
+                    'description' => $descriptionEn,
                     'site' => $exponent->LINK ?? '',
                     'clearSite' => $clearSite,
                     'address' => $exponent->ADRES ?? '',
@@ -185,7 +193,8 @@ class PartnersImportWorker extends BaseWorker
                 ], $this->user->backend);
 
                 $this->log('Successfully created stand: ' . ($exponent->ORG_NAME ?? '') . ' (https://web.appercode.com/electroseti/Partners/' . $newPartner->id . '/edit)');
-            } elseif ($exponents[$externalId]->fields['externalUpdatedAt'] != $exponent->UPDATE_TIME) {
+            //} elseif ($exponents[$externalId]->fields['externalUpdatedAt'] != $exponent->UPDATE_TIME) {
+            } elseif (1) {
                 Element::update('Partners', $exponents[$externalId]->id, [
                     'title' => trim(htmlspecialchars_decode($exponent->ORG_NAME)) ?? '',
                     'subtitle' => '',
@@ -278,7 +287,8 @@ class PartnersImportWorker extends BaseWorker
                 ], $this->user->backend);
 
                 $this->log('Successfully created partner: ' . ($partner->NAME ?? '') . ' (https://web.appercode.com/electroseti/RealPartners/' . $newPartner->id . '/edit)');
-            } elseif ($partners[$externalId]->fields['externalUpdatedAt'] != $partner->UPDATE_TIME) {
+            //} elseif ($partners[$externalId]->fields['externalUpdatedAt'] != $partner->UPDATE_TIME) {
+            } elseif (1) {
                 $fileId = null;
                 if (isset($partner->DETAIL_PICTURE) && $partner->DETAIL_PICTURE) {
                     $fileId = $this->uploadFile($partner->DETAIL_PICTURE, self::PARTNERS_FILE_FOLDER, $partner->NAME ?? 'partner-' . $externalId)->id;
