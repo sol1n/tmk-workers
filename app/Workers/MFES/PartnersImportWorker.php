@@ -84,7 +84,7 @@ class PartnersImportWorker extends BaseWorker
                     '$in' => [true, false]
                 ]
             ],
-            'include' => ['id', 'title', 'createdAt', 'updatedAt', 'ownerId', 'svgId', 'externalUpdatedAt']
+            'include' => ['id', 'title', 'createdAt', 'updatedAt', 'ownerId', 'svgId', 'externalUpdatedAt', 'isPublished']
         ])->mapWithKeys(function(Element $exponent) {
             return [$exponent->fields['svgId'] => $exponent];
         });
@@ -193,8 +193,7 @@ class PartnersImportWorker extends BaseWorker
                 ], $this->user->backend);
 
                 $this->log('Successfully created stand: ' . ($exponent->ORG_NAME ?? '') . ' (https://web.appercode.com/electroseti/Partners/' . $newPartner->id . '/edit)');
-            //} elseif ($exponents[$externalId]->fields['externalUpdatedAt'] != $exponent->UPDATE_TIME) {
-            } elseif (1) {
+            } elseif ($exponents[$externalId]->fields['externalUpdatedAt'] != $exponent->UPDATE_TIME) {
                 Element::update('Partners', $exponents[$externalId]->id, [
                     'title' => trim(htmlspecialchars_decode($exponent->ORG_NAME)) ?? '',
                     'subtitle' => '',
@@ -212,6 +211,23 @@ class PartnersImportWorker extends BaseWorker
                 $this->log('Successfully updated stand: ' . ($exponent->ORG_NAME ?? '') . ' (https://web.appercode.com/electroseti/Partners/' . $exponents[$externalId]->id . '/edit)');
             } else {
                 $this->log('Skipped stand: ' . ($exponent->ORG_NAME ?? '') . ' (https://web.appercode.com/electroseti/Partners/' . $exponents[$externalId]->id . '/edit)');
+            }
+        }
+
+        foreach ($exponents as $stand) {
+            if ($stand->fields['isPublished'] && !isset($fetchedExponents[$stand->fields['svgId']])) {
+                Element::update('Partners', $stand->id, [
+                    'isPublished' => false,
+                ], $this->user->backend);
+
+                $this->log('Unpublished stand: ' . ($stand->fields['title'] ?? '') . ' (https://web.appercode.com/electroseti/Partners/' . $stand->id . '/edit)');
+            }
+            if (!$stand->fields['isPublished'] && isset($fetchedExponents[$stand->fields['svgId']])) {
+                Element::update('Partners', $stand->id, [
+                    'isPublished' => true,
+                ], $this->user->backend);
+
+                $this->log('Published stand: ' . ($stand->fields['title'] ?? '') . ' (https://web.appercode.com/electroseti/Partners/' . $stand->id . '/edit)');
             }
         }
 
@@ -287,8 +303,7 @@ class PartnersImportWorker extends BaseWorker
                 ], $this->user->backend);
 
                 $this->log('Successfully created partner: ' . ($partner->NAME ?? '') . ' (https://web.appercode.com/electroseti/RealPartners/' . $newPartner->id . '/edit)');
-            //} elseif ($partners[$externalId]->fields['externalUpdatedAt'] != $partner->UPDATE_TIME) {
-            } elseif (1) {
+            } elseif ($partners[$externalId]->fields['externalUpdatedAt'] != $partner->UPDATE_TIME) {
                 $fileId = null;
                 if (isset($partner->DETAIL_PICTURE) && $partner->DETAIL_PICTURE) {
                     $fileId = $this->uploadFile($partner->DETAIL_PICTURE, self::PARTNERS_FILE_FOLDER, $partner->NAME ?? 'partner-' . $externalId)->id;
