@@ -63,6 +63,20 @@ class PartnersImportWorker extends BaseWorker
 
     private function stands()
     {
+        $tags = Element::list('StandTags', $this->user->backend, [
+            'take' => -1,
+            'where' => [
+                'isPublished' => [
+                    '$in' => [true, false]
+                ]
+            ],
+            'include' => ['id', 'title', 'createdAt', 'updatedAt', 'ownerId']
+        ])->mapWithKeys(function(Element $tag) {
+            $key = str_replace(' ', '', $tag->fields['title']);
+            $key = mb_strtolower($key);
+            return [$key => $tag];
+        });
+
         $exponents = Element::list('Partners', $this->user->backend, [
             'take' => -1,
             'where' => [
@@ -85,35 +99,105 @@ class PartnersImportWorker extends BaseWorker
 
         $this->log('Fetched ' . count($data) . ' stands');
 
+        $fetchedTags = [];
+        foreach ($fetchedExponents as $exponent) {
+            if (isset($exponent->SECTION) && is_array($exponent->SECTION)) {
+                foreach ($exponent->SECTION as $section) {
+                    $key = str_replace(' ', '', $section);
+                    $key = mb_strtolower($key);
+                    $fetchedTags[$key] = $section;
+                }
+            }
+        }
+
+        foreach ($fetchedTags as $key => $tag) {
+            if (!$tags->has($key)) {
+                $newTag = Element::create('StandTags', [
+                    'title' => $tag
+                ], $this->user->backend);
+
+                $tags[$key] = $newTag;
+            }
+        }
+
         foreach ($fetchedExponents as $exponent) {
             $externalId = $exponent->ID;
 
-            $description = '<p></p><br><p><a data-link-generator="" data-schema-id="HtmlPages" data-object-id="b16cc295-afec-47a9-a878-373663ba7e48" href="html:?schemaId=HtmlPages&amp;objectId=b16cc295-afec-47a9-a878-373663ba7e48&amp;message=' . $externalId . '">Посмотреть на схеме выставки &gt;</a></p>';
-
-            $description = '';
-
             $subtitle = '';
             if (isset($exponent->SECTION) && is_array($exponent->SECTION)) {
-                $subtitle = implode(', ', $exponent->SECTION ?? []);
+                $subtitle = implode('; ', $exponent->SECTION);
+            }
+
+            $clearSite = str_replace(['http://', 'https://'], '', $exponent->LINK ?? '');
+
+            $description = view('mfes/exponents', [
+                'title' => trim(htmlspecialchars_decode($exponent->ORG_NAME)),
+                'subtitle' => trim(htmlspecialchars_decode($subtitle)),
+                'description' => str_replace("\r\n", "<br/>\r\n", trim(htmlspecialchars_decode($exponent->ABOUT_RUS->TEXT ?? ''))),
+                'site' => $exponent->LINK ?? '',
+                'clearSite' => $clearSite,
+                'address' => $exponent->ADRES ?? '',
+                'phone' => $exponent->PHONE ?? '',
+                'email' => $exponent->EMAIL ?? '',
+                'svgId' => $externalId,
+            ])->render();
+
+            if (isset($exponent->ABOUT_ENG->TEXT)) {
+                $descriptionEn = view('mfes/exponents', [
+                    'title' => trim(htmlspecialchars_decode($exponent->ORG_NAME)),
+                    'subtitle' => trim(htmlspecialchars_decode($subtitle)),
+                    'description' => str_replace("\r\n", "<br/>\r\n", trim(htmlspecialchars_decode($exponent->ABOUT_ENG->TEXT ?? ''))),
+                    'site' => $exponent->LINK ?? '',
+                    'clearSite' => $clearSite,
+                    'address' => $exponent->ADRES ?? '',
+                    'phone' => $exponent->PHONE ?? '',
+                    'email' => $exponent->EMAIL ?? '',
+                    'svgId' => $externalId,
+                ])->render();
+            } else {
+                $descriptionEn = null;
+            }
+
+            $exponentTags = [];
+            if (isset($exponent->SECTION) && is_array($exponent->SECTION)) {
+                foreach ($exponent->SECTION as $section) {
+                    $key = str_replace(' ', '', $section);
+                    $key = mb_strtolower($key);
+
+                    $exponentTags[] = $tags[$key]->id;
+                }
             }
 
             if (!$exponents->has($externalId)) {
                 
                 $newPartner = Element::create('Partners', [
-                    'title' => $exponent->ORG_NAME ?? '',
-                    'subtitle' => $subtitle,
+                    'title' => trim(htmlspecialchars_decode($exponent->ORG_NAME)) ?? '',
+                    'tagsIds' => $exponentTags,
                     'description' => $description,
                     'svgId' => $externalId,
                     'externalUpdatedAt' => $exponent->UPDATE_TIME
                 ], $this->user->backend);
 
+                Element::updateLanguages('Partners', $newPartner->id, [
+                    'en' => [
+                        'description' => $descriptionEn
+                    ]
+                ], $this->user->backend);
+
                 $this->log('Successfully created stand: ' . ($exponent->ORG_NAME ?? '') . ' (https://web.appercode.com/electroseti/Partners/' . $newPartner->id . '/edit)');
             } elseif ($exponents[$externalId]->fields['externalUpdatedAt'] != $exponent->UPDATE_TIME) {
                 Element::update('Partners', $exponents[$externalId]->id, [
-                    'title' => $exponent->ORG_NAME ?? '',
-                    'subtitle' => $subtitle,
+                    'title' => trim(htmlspecialchars_decode($exponent->ORG_NAME)) ?? '',
+                    'subtitle' => '',
+                    'tagsIds' => $exponentTags,
                     'description' => $description,
                     'externalUpdatedAt' => $exponent->UPDATE_TIME
+                ], $this->user->backend);
+
+                Element::updateLanguages('Partners', $exponents[$externalId]->id, [
+                    'en' => [
+                        'description' => $descriptionEn
+                    ]
                 ], $this->user->backend);
 
                 $this->log('Successfully updated stand: ' . ($exponent->ORG_NAME ?? '') . ' (https://web.appercode.com/electroseti/Partners/' . $exponents[$externalId]->id . '/edit)');
@@ -175,7 +259,7 @@ class PartnersImportWorker extends BaseWorker
                     'clearSite' => $clearSite,
                     'phone' => $partner->PHONE ?? '',
                     'email' => $partner->EMAIL ?? '',
-                    'address' => $partner->ADRES ?? ''
+                    'address' => $partner->ADDRESS ?? ''
                 ])->render();
 
                 $newPartner = Element::create('RealPartners', [
@@ -184,7 +268,7 @@ class PartnersImportWorker extends BaseWorker
                     'imageFileId' => $fileId,
                     'svgId' => $partner->STAND ?? '',
                     'site' => $partner->LINK ?? '',
-                    'address' => $partner->ADRES ?? '',
+                    'address' => $partner->ADDRESS ?? '',
                     'phone' => $partner->PHONE ?? '',
                     'email' => $partner->EMAIL ?? '',
                     'section' => $partner->SECTION ?? '',
@@ -210,7 +294,7 @@ class PartnersImportWorker extends BaseWorker
                     'clearSite' => $clearSite,
                     'phone' => $partner->PHONE ?? '',
                     'email' => $partner->EMAIL ?? '',
-                    'address' => $partner->ADRES ?? ''
+                    'address' => $partner->ADDRESS ?? ''
                 ])->render();
 
                 Element::update('RealPartners', $partners[$externalId]->id, [
@@ -219,7 +303,7 @@ class PartnersImportWorker extends BaseWorker
                     'imageFileId' => $fileId,
                     'svgId' => $partner->STAND ?? '',
                     'site' => $partner->LINK ?? '',
-                    'address' => $partner->ADRES ?? '',
+                    'address' => $partner->ADDRESS ?? '',
                     'phone' => $partner->PHONE ?? '',
                     'email' => $partner->EMAIL ?? '',
                     'section' => $partner->SECTION ?? '',
