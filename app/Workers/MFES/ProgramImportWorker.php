@@ -219,8 +219,8 @@ class ProgramImportWorker extends BaseWorker
                         'firstName' => trim(htmlspecialchars_decode($fetchedSpeaker->NAME_ENG)) ?? '',
                         'lastName' => trim(htmlspecialchars_decode($fetchedSpeaker->LAST_NAME_ENG)) ?? '',
                         'middleName' => trim(htmlspecialchars_decode($fetchedSpeaker->SER_NAME_ENG)) ?? '',
-                        'position' => trim(htmlspecialchars_decode($fetchedSpeaker->POSITION_ENG)),
-                        'company' => trim(htmlspecialchars_decode($fetchedSpeaker->COMPANY_ENG))
+                        'position' => trim(htmlspecialchars_decode($fetchedSpeaker->POSITION_ENG)) ?? '',
+                        'company' => trim(htmlspecialchars_decode($fetchedSpeaker->COMPANY_ENG)) ?? ''
                     ]
                 ], $this->user->backend);
 
@@ -228,7 +228,6 @@ class ProgramImportWorker extends BaseWorker
 
                 $this->log('Created user ' . $speakerName . ' (https://web.appercode.com/electroseti/users/' . $user->id . '/edit)');
             } elseif ($users[$fetchedSpeaker->ID]->fields['externalUpdatedAt'] != $fetchedSpeaker->UPDATE_TIME) {
-
                 $extension = explode('.', $fetchedSpeaker->DETAIL_PIC);
                 $extension = $extension[count($extension) - 1];
 
@@ -257,8 +256,8 @@ class ProgramImportWorker extends BaseWorker
                         'firstName' => trim(htmlspecialchars_decode($fetchedSpeaker->NAME_ENG)) ?? '',
                         'lastName' => trim(htmlspecialchars_decode($fetchedSpeaker->LAST_NAME_ENG)) ?? '',
                         'middleName' => trim(htmlspecialchars_decode($fetchedSpeaker->SER_NAME_ENG)) ?? '',
-                        'position' => trim(htmlspecialchars_decode($fetchedSpeaker->POSITION_ENG)),
-                        'company' => trim(htmlspecialchars_decode($fetchedSpeaker->COMPANY_ENG))
+                        'position' => trim(htmlspecialchars_decode($fetchedSpeaker->POSITION_ENG)) ?? '',
+                        'company' => trim(htmlspecialchars_decode($fetchedSpeaker->COMPANY_ENG)) ?? ''
                     ]
                 ], $this->user->backend);
 
@@ -318,8 +317,12 @@ class ProgramImportWorker extends BaseWorker
 
                             Element::updateLanguages('Events', $newEvent->id, [
                                 'en' => [
-                                    'title' => trim(htmlspecialchars_decode($event->NAME_ENG)) ?? '',
-                                    'description' => trim(htmlspecialchars_decode($event->DESC_ENG)) ?? ''
+                                    'title' => isset($event->NAME_ENG) && $event->NAME_ENG 
+                                        ? trim(htmlspecialchars_decode($event->NAME_ENG))
+                                        : null,
+                                    'description' => isset($event->DESC_ENG) && $event->DESC_ENG
+                                        ? trim(htmlspecialchars_decode($event->DESC_ENG))
+                                        : null
                                 ]
                             ], $this->user->backend);
 
@@ -366,8 +369,12 @@ class ProgramImportWorker extends BaseWorker
 
                             Element::updateLanguages('Events', $events[$event->ID]->id, [
                                 'en' => [
-                                    'title' => trim(htmlspecialchars_decode($event->NAME_ENG)) ?? '',
-                                    'description' => trim(htmlspecialchars_decode($event->DESC_ENG)) ?? ''
+                                    'title' => isset($event->NAME_ENG) && $event->NAME_ENG 
+                                        ? trim(htmlspecialchars_decode($event->NAME_ENG))
+                                        : null,
+                                    'description' => isset($event->DESC_ENG) && $event->DESC_ENG
+                                        ? trim(htmlspecialchars_decode($event->DESC_ENG))
+                                        : null
                                 ]
                             ], $this->user->backend);
 
