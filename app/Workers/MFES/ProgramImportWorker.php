@@ -367,7 +367,8 @@ class ProgramImportWorker extends BaseWorker
                                 'endAt' => Carbon::parse($event->DATE_ACTIVE_TO, 'UTC')->setTimezone('Europe/Moscow')->toAtomString(),
                                 'description' => $description,
                                 'tagsIds' => $tagIds,
-                                'isCanceled' => false
+                                'isCanceled' => false,
+                                'isPublished' => true
                             ], $this->user->backend);
 
                             Element::updateLanguages('Events', $events[$event->ID]->id, [
