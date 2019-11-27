@@ -70,7 +70,7 @@ class PartnersImportWorker extends BaseWorker
                     '$in' => [true, false]
                 ]
             ],
-            'include' => ['id', 'title', 'createdAt', 'updatedAt', 'ownerId']
+            'include' => ['id', 'title', 'createdAt', 'updatedAt', 'ownerId', 'isPublished']
         ])->mapWithKeys(function(Element $tag) {
             $key = str_replace(' ', '', $tag->fields['title']);
             $key = mb_strtolower($key);
@@ -228,6 +228,26 @@ class PartnersImportWorker extends BaseWorker
                 ], $this->user->backend);
 
                 $this->log('Published stand: ' . ($stand->fields['title'] ?? '') . ' (https://web.appercode.com/electroseti/Partners/' . $stand->id . '/edit)');
+            }
+        }
+
+        foreach ($tags as $tag) {
+            $key = str_replace(' ', '', $tag->fields['title']);
+            $key = mb_strtolower($key);
+
+            if ($tag->fields['isPublished'] && !isset($fetchedTags[$key])) {
+                Element::update('StandTags', $tag->id, [
+                    'isPublished' => false,
+                ], $this->user->backend);
+
+                $this->log('Unpublished tag: ' . ($tag->fields['title'] ?? '') . ' (https://web.appercode.com/electroseti/StandTags/' . $tag->id . '/edit)');
+            }
+            if (!$tag->fields['isPublished'] && isset($fetchedTags[$key])) {
+                Element::update('StandTags', $tag->id, [
+                    'isPublished' => true,
+                ], $this->user->backend);
+
+                $this->log('Published tag: ' . ($tag->fields['title'] ?? '') . ' (https://web.appercode.com/electroseti/StandTags/' . $tag->id . '/edit)');
             }
         }
 

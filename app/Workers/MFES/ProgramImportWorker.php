@@ -86,7 +86,7 @@ class ProgramImportWorker extends BaseWorker
 
         $events = Element::list('Events', $this->user->backend, [
             'take' => -1,
-            'include' => ['id', 'externalId', 'externalUpdatedAt', 'createdAt', 'updatedAt', 'ownerId'],
+            'include' => ['id', 'externalId', 'externalUpdatedAt', 'createdAt', 'updatedAt', 'ownerId', 'isPublished'],
             'where' => [
                 'externalId' => [
                     '$exists' => true
@@ -176,6 +176,8 @@ class ProgramImportWorker extends BaseWorker
                 }
             }
         }
+
+        $fetchedEvents = [];
 
         foreach ($fetchedSpeakers as $fetchedSpeaker) {
             $speakerName = trim(htmlspecialchars_decode($fetchedSpeaker->LAST_NAME)) . ' ' . trim(htmlspecialchars_decode($fetchedSpeaker->NAME));
@@ -285,6 +287,7 @@ class ProgramImportWorker extends BaseWorker
                 if (isset($area->EVENTS) && is_array($area->EVENTS)) {
                     foreach ($area->EVENTS as $event) {
                         $eventSpeakers = [];
+                        $fetchedEvents[$event->ID] = true;
 
                         if (isset($event->MODERS) && is_array($event->MODERS)) {
                             foreach ($event->MODERS as $fetchedSpeaker) {
@@ -430,6 +433,24 @@ class ProgramImportWorker extends BaseWorker
             Element::update('UserProfiles', $users->get($moderId)->id, [
                 'orderIndex' => 1,
             ], $this->user->backend);
+        }
+
+        foreach ($events as $event) {
+            if (!isset($fetchedEvents[$event->fields['externalId']]) && $event->fields['isPublished']) {
+                Element::update('Events', $event->id, [
+                    'isPublished' => false,
+                ], $this->user->backend);
+
+                $this->log('Unpublished event: ' . ($event->fields['title'] ?? '') . ' (https://web.appercode.com/electroseti/Events/' . $event->id . '/edit)');
+            }
+
+            if (isset($fetchedEvents[$event->fields['externalId']]) && !$event->fields['isPublished']) {
+                Element::update('Events', $event->id, [
+                    'isPublished' => true,
+                ], $this->user->backend);
+
+                $this->log('Published event: ' . ($event->fields['title'] ?? '') . ' (https://web.appercode.com/electroseti/Events/' . $event->id . '/edit)');
+            }
         }
 
         $this->log('Events imported successfully');
