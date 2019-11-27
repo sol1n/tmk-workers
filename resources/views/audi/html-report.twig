@@ -1,0 +1,151 @@
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+    .rating-user {
+        max-height: 70px;
+        padding: 0.75rem 1rem 0.875rem 0.375rem;
+        display: flex;
+        align-items: center;
+        background: #fff;
+        position: relative;
+        overflow: hidden;
+        text-decoration: none;
+        color: #000;
+    }
+    .rating-user.user-bordered {
+        padding-bottom: 0.9375rem;
+    }
+    .rating-user.user-bordered:after {
+        content: " ";
+        display: block;
+        width: 100%;
+        height: 1px;
+        background: #000;
+        opacity: 0.07;
+        position: absolute;
+        left: 2.625rem;
+        bottom: 0;
+    }
+    .rating-user .rating-user-rank {
+        font-size: 0.75rem;
+        color: #8E8E93;
+        display: inline-block;
+        margin-right: 0.625rem;
+        vertical-align: middle;
+        min-width: 1.625rem;
+        text-align: right;
+        font-weight: 600;
+    }
+    .rating-user .rating-user-rank.small {
+        font-size: 0.5625rem;
+    }
+    .rating-user .rating-user-pp {
+        display: inline-block;
+        vertical-align: middle;
+        margin-right: 0.75rem;
+        width: 2.75rem;
+        height: 2.75rem;
+    }
+    .rating-user .rating-user-pp img {
+        width: 100%;
+        height: 100%;
+        border-radius: 2.75rem;
+        overflow: hidden;
+        object-fit: cover;
+    }
+    .rating-user .rating-user-info {
+        display: inline-block;
+        vertical-align: middle;
+        flex: 1;
+        margin-right: 12px;
+        white-space: normal;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .rating-user .rating-user-info .rating-user-full-name {
+        font-size: 0.9375rem;
+        line-height: 1.25rem;
+        color: #000;
+        margin-bottom: 0.0625rem;
+        letter-spacing: -0.24px;
+        font-weight: 500;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        overflow: hidden;
+    }
+    .rating-user .rating-user-info .rating-user-post {
+        font-size: 0.75rem;
+        line-height: 0.875rem;
+        color: #8E8E93;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        max-height: 2.5em;
+    }
+    .rating-user .rating-user-points {
+        display: inline-block;
+        vertical-align: middle;
+        font-size: 0;
+    }
+    .rating-user .rating-user-points .points {
+        color: #BA9E72;
+        font-size: 0.75rem;
+        font-weight: 600;
+        vertical-align: middle;
+        line-height: 16px;
+        margin-right: 3px;
+    }
+    .rating-user .rating-user-points .points-icon {
+        vertical-align: middle;
+        width: 1rem;
+        height: 1rem;
+    }
+    .rating-user .rating-user-initials {
+        width: 100%;
+        height: 100%;
+        color: #fff;
+        text-transform: uppercase;
+        text-align: center;
+        border-radius: 2.75rem;
+        line-height: 2.75rem;
+        font-size: 1.0625rem;
+    }
+</style>
+
+{% for user in users %}
+    <a class="rating-user user-bordered" href="{{ "actor:ContactsPageActor?params=" ~ ({schemaId: 'UserProfiles', objectId: user.profile.id}|json_encode|url_encode) }}">
+        <div class="rating-user-rank" {% if user.amount > 999 %}class="isSmallRankStyle"{% endif %}>
+            {% if user.amount < 10000 %}
+                {{ loop.index }}
+            {% else %}
+                –
+            {% endif %}
+        </div>
+        <div class="rating-user-pp">
+            {% if user.profile.fields.imageFileId %}
+                <img src="{{ backend.url ~ '/images/' + user.profile.fields.imageFileId + '/download?width=44&height=44' }}">
+            {% else %}
+                <div class="rating-user-initials" style="background-color: {{ profileColor(user.profile.id) }}">
+                    {{ user.profile.fields.lastName|first|upper }}{{ user.profile.fields.firstName|first|upper }}
+                </div>
+            {% endif %}
+        </div>
+        <div class="rating-user-info">
+            <div class="rating-user-full-name">
+                {{ user.profile.fields.lastName }} {{ user.profile.fields.firstName }}
+            </div>
+            <div class="rating-user-post">
+                {% if user.profile.fields.company %}
+                    {{ user.profile.fields.company }}
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="rating-user-points">
+            <span class="points">{{ user.amount }}</span>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" class="points-icon">
+                <path d="M2.4813 6.35826L4.7 3.4C4.88885 3.14819 5.18524 3 5.5 3H10.5C10.8148 3 11.1111 3.14819 11.3 3.4L13.5187 6.35826C13.7999 6.73322 13.783 7.25319 13.478 7.60905L8 14L2.52205 7.60905C2.21702 7.25319 2.20008 6.73322 2.4813 6.35826Z" fill="#BA9E72"/>
+            </svg>
+        </div>
+    </a>
+{% endfor %}
