@@ -28,21 +28,47 @@ class PointsWorker extends BaseWorker
         ]);
 
         foreach ($elements as $element) {
-            if (isset($element->ownerId) && $element->ownerId) {    
-                $points = Points::create($this->user->backend, [
-                    'usersIds' => [$element->ownerId],
-                    'withNotification' => true,
-                    'title' => [
-                        'ru' => 'За отзыв о магазине',
-                        'en' => 'For store review'
-                    ],
-                    'amount' => 35,
-                    'category' => 'manual'
-                ]);
 
-                Element::update('ShopReports', $element->id, [
-                    'pointsAccrualId' => $points->id
-                ], $this->user->backend);
+            if (isset($element->ownerId) && $element->ownerId) {
+                if ((isset($element->fields['positivePhotoIds']) && $element->fields['positivePhotoIds']) || (isset($element->fields['negativePhotoIds']) && $element->fields['negativePhotoIds'])) {
+
+                    $previous = Element::list('ShopReports', $this->user->backend, [
+                        'where' => [
+                            'isChecked' => true,
+                            'ownerId' => $element->ownerId,
+                            'shopId' => $element->fields['shopId'],
+                            'createdAt' => [
+                                '$lte' => Carbon::now()->subDays(14)->toAtomString()
+                            ]
+                        ],
+                        'take' => -1
+                    ])->first();
+
+                    if (!is_null($previous)) {
+                        $title = 'За отзыв о магазине (работа над ошибками)';
+                        $title_en = 'For store second review';
+                        $amount = 50;
+                    } else {
+                        $title = 'За отзыв о магазине';
+                        $title_en = 'For store review';
+                        $amount = 35;
+                    }
+
+                    $points = Points::create($this->user->backend, [
+                        'usersIds' => [$element->ownerId],
+                        'withNotification' => true,
+                        'title' => [
+                            'ru' => $title,
+                            'en' => $title_en
+                        ],
+                        'amount' => $amount,
+                        'category' => 'manual'
+                    ]);
+
+                    Element::update('ShopReports', $element->id, [
+                        'pointsAccrualId' => $points->id
+                    ], $this->user->backend);
+                }
             }
         }
     }
@@ -95,20 +121,36 @@ class PointsWorker extends BaseWorker
         foreach ($elements as $element) {
             if (isset($element->ownerId) && $element->ownerId) {
 
-                $points = Points::create($this->user->backend, [
-                    'usersIds' => [$element->ownerId],
-                    'withNotification' => true,
-                    'title' => [
-                        'ru' => 'За отзыв SOS',
-                        'en' => 'For the SOS report'
+                $previous = Element::list('Appeals', $this->user->backend, [
+                    'where' => [
+                        'pointsAccrualId' => [
+                            '$exists' => false
+                        ],
+                        'isChecked' => true,
+                        'ownerId' => $element->ownerId,
+                        'id' => [
+                            '$ne' => $element->id
+                        ]
                     ],
-                    'amount' => 25,
-                    'category' => 'manual'
+                    'take' => -1
                 ]);
 
-                Element::update('Appeals', $element->id, [
-                    'pointsAccrualId' => $points->id
-                ], $this->user->backend);
+                if (!$previous->count()) {
+                    $points = Points::create($this->user->backend, [
+                        'usersIds' => [$element->ownerId],
+                        'withNotification' => true,
+                        'title' => [
+                            'ru' => 'За отзыв SOS',
+                            'en' => 'For the SOS report'
+                        ],
+                        'amount' => 25,
+                        'category' => 'manual'
+                    ]);
+
+                    Element::update('Appeals', $element->id, [
+                        'pointsAccrualId' => $points->id
+                    ], $this->user->backend);
+                }
             }
         }
     }
