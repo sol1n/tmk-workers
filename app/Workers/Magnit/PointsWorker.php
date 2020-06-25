@@ -32,36 +32,14 @@ class PointsWorker extends BaseWorker
             if (isset($element->ownerId) && $element->ownerId) {
                 if ((isset($element->fields['positivePhotoIds']) && $element->fields['positivePhotoIds']) || (isset($element->fields['negativePhotoIds']) && $element->fields['negativePhotoIds'])) {
 
-                    $previous = Element::list('ShopReports', $this->user->backend, [
-                        'where' => [
-                            'isChecked' => true,
-                            'ownerId' => $element->ownerId,
-                            'shopId' => $element->fields['shopId'],
-                            'createdAt' => [
-                                '$lte' => Carbon::now()->subDays(14)->toAtomString()
-                            ]
-                        ],
-                        'take' => -1
-                    ])->first();
-
-                    if (!is_null($previous)) {
-                        $title = 'За отзыв о магазине (работа над ошибками)';
-                        $title_en = 'For store second review';
-                        $amount = 50;
-                    } else {
-                        $title = 'За отзыв о магазине';
-                        $title_en = 'For store review';
-                        $amount = 35;
-                    }
-
                     $points = Points::create($this->user->backend, [
                         'usersIds' => [$element->ownerId],
                         'withNotification' => true,
                         'title' => [
-                            'ru' => $title,
-                            'en' => $title_en
+                            'ru' => 'За отзыв о магазине',
+                            'en' => 'For store review'
                         ],
-                        'amount' => $amount,
+                        'amount' => 35,
                         'category' => 'manual'
                     ]);
 
@@ -120,37 +98,20 @@ class PointsWorker extends BaseWorker
 
         foreach ($elements as $element) {
             if (isset($element->ownerId) && $element->ownerId) {
-
-                $previous = Element::list('Appeals', $this->user->backend, [
-                    'where' => [
-                        'pointsAccrualId' => [
-                            '$exists' => false
-                        ],
-                        'isChecked' => true,
-                        'ownerId' => $element->ownerId,
-                        'id' => [
-                            '$ne' => $element->id
-                        ]
+                $points = Points::create($this->user->backend, [
+                    'usersIds' => [$element->ownerId],
+                    'withNotification' => true,
+                    'title' => [
+                        'ru' => 'За отзыв SOS',
+                        'en' => 'For the SOS report'
                     ],
-                    'take' => -1
+                    'amount' => 25,
+                    'category' => 'manual'
                 ]);
 
-                if (!$previous->count()) {
-                    $points = Points::create($this->user->backend, [
-                        'usersIds' => [$element->ownerId],
-                        'withNotification' => true,
-                        'title' => [
-                            'ru' => 'За отзыв SOS',
-                            'en' => 'For the SOS report'
-                        ],
-                        'amount' => 25,
-                        'category' => 'manual'
-                    ]);
-
-                    Element::update('Appeals', $element->id, [
-                        'pointsAccrualId' => $points->id
-                    ], $this->user->backend);
-                }
+                Element::update('Appeals', $element->id, [
+                    'pointsAccrualId' => $points->id
+                ], $this->user->backend);
             }
         }
     }
