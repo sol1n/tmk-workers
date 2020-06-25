@@ -28,7 +28,7 @@ class PointsWorker extends BaseWorker
         ]);
 
         foreach ($elements as $element) {
-            if (isset($element->ownerId) && $element->ownerId) {
+            if (isset($element->ownerId) && $element->ownerId) {    
                 $points = Points::create($this->user->backend, [
                     'usersIds' => [$element->ownerId],
                     'withNotification' => true,
@@ -113,10 +113,45 @@ class PointsWorker extends BaseWorker
         }
     }
 
+
+    private function news()
+    {
+        $elements = Element::list('OurMGN', $this->user->backend, [
+            'where' => [
+                'pointsAccrualId' => [
+                    '$exists' => false
+                ],
+                'isChecked' => true
+            ],
+            'take' => -1
+        ]);
+
+        foreach ($elements as $element) {
+            if (isset($element->ownerId) && $element->ownerId) {
+
+                $points = Points::create($this->user->backend, [
+                    'usersIds' => [$element->ownerId],
+                    'withNotification' => true,
+                    'title' => [
+                        'ru' => 'За предложенную новость',
+                        'en' => 'For the proposed news'
+                    ],
+                    'amount' => 15,
+                    'category' => 'manual'
+                ]);
+
+                Element::update('OurMGN', $element->id, [
+                    'pointsAccrualId' => $points->id
+                ], $this->user->backend);
+            }
+        }
+    }
+
     public function handle()
     {
         $this->shopReports();
         $this->ideaReports();
         $this->appeals();
+        $this->news();
     }
 }
